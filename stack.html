@@ -8,11 +8,56 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <style>
-  .stack-stage{display:flex;flex-direction:column;align-items:center;min-height:340px;justify-content:flex-end;position:relative;padding:12px 0;}
-  .stack-tube{width:160px;border:2px solid var(--ink);border-top:none;border-radius:0 0 8px 8px;display:flex;flex-direction:column-reverse;min-height:280px;position:relative;padding:4px;gap:4px;}
-  .top-label{position:absolute;left:-86px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sage-deep);font-weight:500;}
+  .size-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:18px;}
+  .size-row label{font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;}
+  .stack-stage{display:flex;flex-direction:column;align-items:center;min-height:300px;justify-content:flex-end;position:relative;padding:12px 0;}
+  .stack-tube{
+    width:160px;border:2px solid var(--ink);border-top:none;border-radius:0 0 8px 8px;
+    display:flex;flex-direction:column-reverse;position:relative;padding:4px;gap:4px;
+    max-height:320px;overflow-y:auto;
+  }
+  .top-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sage-deep);font-weight:500;white-space:nowrap;}
   .stack-slot{height:42px;border-radius:6px;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:15px;animation:dropIn 0.32s ease;flex-shrink:0;}
   @keyframes dropIn{from{transform:translateY(-30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+  .caption{
+    margin-top:18px;
+    background:var(--sage-pale);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 16px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--sage-deep);
+    min-height:20px;
+    text-align:center;
+    transition:opacity 0.2s ease;
+  }
+  .caption.idle{color:var(--ink-soft);font-style:italic;}
+
+  .explainer{
+    margin-top:18px;
+    border-top:1px solid var(--line);
+    padding-top:18px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    line-height:1.7;
+  }
+  .explainer h3{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:15px;
+    color:var(--ink);
+    margin:0 0 8px;
+  }
+  .explainer code{
+    background:var(--porcelain);
+    padding:1px 5px;
+    border-radius:4px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    color:var(--sage-deep);
+  }
 </style>
 </head>
 <body>
@@ -31,11 +76,19 @@
 <main class="layout">
   <div class="panel">
     <h2>Visualizer</h2>
-    <div class="stack-stage">
-      <div class="stack-tube" id="tube">
-        <span class="top-label" id="topLabel" style="bottom:0">TOP → -1</span>
-      </div>
+
+    <div class="size-row">
+      <label>Max Size</label>
+      <input type="number" id="sizeInput" min="2" max="12" value="5" style="width:60px;">
+      <button class="btn-ghost" onclick="applySize()">Set Size</button>
     </div>
+
+    <div class="stack-stage" id="stage">
+      <div class="stack-tube" id="tube"></div>
+    </div>
+
+    <div class="caption idle" id="caption">Push a value to get started.</div>
+
     <div class="controls">
       <input type="number" id="valInput" placeholder="value" />
       <button class="btn-primary" onclick="push()">Push</button>
@@ -60,11 +113,36 @@
       <div class="ledger" id="ledgerBox">
         <div class="ledger-row"><span class="ledger-key">arr[]</span><span class="ledger-val garbage" id="ledgerArr">[ garbage, garbage, garbage, garbage, garbage ]</span></div>
         <div class="ledger-row"><span class="ledger-key">top</span><span class="ledger-val" id="ledgerTop">-1</span></div>
-        <div class="ledger-row"><span class="ledger-key">MAX_SIZE</span><span class="ledger-val">5</span></div>
+        <div class="ledger-row"><span class="ledger-key">MAX_SIZE</span><span class="ledger-val" id="ledgerMax">5</span></div>
       </div>
     </div>
 
-    <div class="tab-content" id="code"><pre class="code" id="codeBlock"></pre></div>
+    <div class="tab-content" id="code">
+      <pre class="code" id="codeBlock"></pre>
+      <div class="explainer">
+        <h3>How this works</h3>
+        <p>
+          The stack is backed by a fixed-size array <code>arr[MAX]</code> and a single integer
+          <code>top</code>, which always points to the index of the most recently inserted element.
+          An empty stack starts with <code>top = -1</code> — there's nothing to point to yet, so every
+          slot in <code>arr</code> still holds whatever garbage value was sitting in memory before the
+          program touched it.
+        </p>
+        <p>
+          <strong>Push</strong> first checks <code>top == MAX - 1</code> to make sure there's room left.
+          If there is, it increments <code>top</code> and writes the new value at that index in one step:
+          <code>arr[++top] = val</code>. The pre-increment means "move the pointer up first, then write" —
+          so the value always lands one slot above whatever was previously on top.
+        </p>
+        <p>
+          <strong>Pop</strong> checks <code>top == -1</code> to make sure the stack isn't empty, then reads
+          <code>arr[top]</code> and decrements <code>top</code> in the same line:
+          <code>return arr[top--]</code>. The data technically stays in memory at that array index — it's
+          just no longer considered part of the stack, since <code>top</code> no longer points to it. That's
+          why a popped slot is shown as garbage again in the visualizer.
+        </p>
+      </div>
+    </div>
 
     <div class="tab-content" id="complexity">
       <table>
@@ -89,94 +167,202 @@
 <footer>Stack — part of the DSA Visualizer collection.</footer>
 
 <script>
-const MAX = 5;
-let arr = new Array(MAX).fill(null);
-let top = -1;
-let opCount = 0;
+  var MAX = 5;
+  var arr = new Array(MAX).fill(null);
+  var top = -1;
+  var opCount = 0;
 
-const codeLines = [
-"#define MAX 5","int arr[MAX];","int top = -1;","",
-"void push(int val) {","    if (top == MAX - 1) return;","    arr[++top] = val;","}","",
-"int pop() {","    if (top == -1) return -1;","    return arr[top--];","}"
-];
-
-function renderCode(activeLine){
-  document.getElementById('codeBlock').innerHTML = codeLines.map((line,i)=>
-    `<span class="code-line${i===activeLine?' active':''}">${line || '&nbsp;'}</span>`
-  ).join('\n');
-}
-renderCode(-1);
-
-function flashLedger(){
-  const box = document.getElementById('ledgerBox');
-  box.querySelectorAll('.ledger-row').forEach(r=>r.classList.add('flash'));
-  setTimeout(()=>box.querySelectorAll('.ledger-row').forEach(r=>r.classList.remove('flash')),400);
-}
-
-function renderLedger(){
-  const display = arr.map(v => v===null ? '<span class="garbage">garbage</span>' : v).join(', ');
-  document.getElementById('ledgerArr').innerHTML = `[ ${display} ]`;
-  document.getElementById('ledgerTop').textContent = top;
-}
-
-function renderTube(){
-  const tube = document.getElementById('tube');
-  tube.innerHTML = '';
-  for(let i=0;i<=top;i++){
-    const slot = document.createElement('div');
-    slot.className = 'stack-slot';
-    slot.textContent = arr[i];
-    tube.appendChild(slot);
+  function codeLines(){
+    return [
+      "#define MAX " + MAX,
+      "int arr[MAX];",
+      "int top = -1;",
+      "",
+      "void push(int val) {",
+      "    if (top == MAX - 1) return;",
+      "    arr[++top] = val;",
+      "}",
+      "",
+      "int pop() {",
+      "    if (top == -1) return -1;",
+      "    return arr[top--];",
+      "}"
+    ];
   }
-  const label = document.createElement('span');
-  label.className = 'top-label';
-  label.style.bottom = (top>=0 ? (top*46 + 4) : 0) + 'px';
-  label.textContent = `TOP → ${top}`;
-  tube.appendChild(label);
-  document.getElementById('sizeCount').textContent = top+1;
-}
 
-function push(){
-  const input = document.getElementById('valInput');
-  const val = input.value;
-  if(val === '' || top === MAX-1) return;
-  renderCode(5);
-  setTimeout(()=>{
-    top++; arr[top] = Number(val);
-    renderTube(); renderLedger(); flashLedger();
-    opCount++; document.getElementById('opCount').textContent = opCount;
-    input.value='';
-    setTimeout(()=>renderCode(-1), 500);
-  }, 150);
-}
+  function renderCode(activeLine){
+    var lines = codeLines();
+    var html = "";
+    for(var i=0;i<lines.length;i++){
+      var cls = "code-line" + (i===activeLine ? " active" : "");
+      html += '<span class="' + cls + '">' + (lines[i] || "&nbsp;") + "</span>\n";
+    }
+    document.getElementById("codeBlock").innerHTML = html;
+  }
 
-function pop(){
-  if(top === -1) return;
-  renderCode(11);
-  setTimeout(()=>{
-    arr[top] = null; top--;
-    renderTube(); renderLedger(); flashLedger();
-    opCount++; document.getElementById('opCount').textContent = opCount;
-    setTimeout(()=>renderCode(-1), 500);
-  }, 150);
-}
+  function setCaption(text, idle){
+    var cap = document.getElementById("caption");
+    cap.textContent = text;
+    if(idle){ cap.classList.add("idle"); } else { cap.classList.remove("idle"); }
+  }
 
-function resetStack(){
-  arr = new Array(MAX).fill(null); top = -1; opCount = 0;
-  document.getElementById('opCount').textContent = 0;
-  renderTube(); renderLedger();
-}
+  function flashLedger(){
+    var rows = document.querySelectorAll("#ledgerBox .ledger-row");
+    for(var i=0;i<rows.length;i++){ rows[i].classList.add("flash"); }
+    setTimeout(function(){
+      for(var i=0;i<rows.length;i++){ rows[i].classList.remove("flash"); }
+    }, 400);
+  }
 
-document.querySelectorAll('.tab').forEach(tab=>{
-  tab.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById(tab.dataset.tab).classList.add('active');
-  });
-});
+  function renderLedger(){
+    var parts = [];
+    for(var i=0;i<arr.length;i++){
+      parts.push(arr[i] === null ? '<span class="garbage">garbage</span>' : arr[i]);
+    }
+    document.getElementById("ledgerArr").innerHTML = "[ " + parts.join(", ") + " ]";
+    document.getElementById("ledgerTop").textContent = top;
+    document.getElementById("ledgerMax").textContent = MAX;
+  }
 
-renderTube(); renderLedger();
+  function renderTube(){
+    var tube = document.getElementById("tube");
+    tube.innerHTML = "";
+    for(var i=0;i<=top;i++){
+      var slot = document.createElement("div");
+      slot.className = "stack-slot";
+      slot.textContent = arr[i];
+      tube.appendChild(slot);
+    }
+    document.getElementById("sizeCount").textContent = top + 1;
+
+    var stage = document.getElementById("stage");
+    var oldLabel = document.getElementById("topLabelText");
+    if(oldLabel) oldLabel.remove();
+    var label = document.createElement("div");
+    label.className = "top-label";
+    label.id = "topLabelText";
+    label.style.marginTop = "8px";
+    label.textContent = "TOP \u2192 " + top;
+    stage.appendChild(label);
+  }
+
+  function bumpOps(){
+    opCount++;
+    document.getElementById("opCount").textContent = opCount;
+  }
+
+  function push(){
+    var input = document.getElementById("valInput");
+    var val = input.value;
+
+    if(val === "" || isNaN(Number(val))){
+      setCaption("Type a number first, then press Push.", false);
+      return;
+    }
+    if(top === MAX - 1){
+      setCaption("Stack overflow — top has reached MAX - 1 (" + (MAX-1) + "). Nothing was pushed.", false);
+      return;
+    }
+
+    setCaption("Checking top == MAX - 1 \u2192 false, there's room. Incrementing top...", false);
+    renderCode(5);
+
+    setTimeout(function(){
+      top++;
+      setCaption("top is now " + top + ". Writing " + val + " into arr[" + top + "]...", false);
+      renderCode(6);
+
+      setTimeout(function(){
+        arr[top] = Number(val);
+        renderTube();
+        renderLedger();
+        flashLedger();
+        bumpOps();
+        var pushedVal = arr[top];
+        var pushedIdx = top;
+        input.value = "";
+        setCaption("Pushed " + pushedVal + ". arr[" + pushedIdx + "] = " + pushedVal + ", top = " + pushedIdx + ".", false);
+
+        setTimeout(function(){
+          renderCode(-1);
+          setCaption("Push a value, or pop the top one off.", true);
+        }, 900);
+      }, 260);
+    }, 260);
+  }
+
+  function pop(){
+    if(top === -1){
+      setCaption("Stack underflow — top is -1, nothing to pop.", false);
+      return;
+    }
+
+    setCaption("Checking top == -1 \u2192 false. Reading arr[" + top + "] = " + arr[top] + "...", false);
+    renderCode(10);
+
+    setTimeout(function(){
+      var popped = arr[top];
+      var poppedIdx = top;
+      setCaption("Returning " + popped + ", then decrementing top from " + poppedIdx + " to " + (poppedIdx-1) + "...", false);
+      renderCode(11);
+
+      setTimeout(function(){
+        arr[top] = null;
+        top--;
+        renderTube();
+        renderLedger();
+        flashLedger();
+        bumpOps();
+        setCaption("Popped " + popped + ". That slot is garbage again, top = " + top + ".", false);
+
+        setTimeout(function(){
+          renderCode(-1);
+          setCaption("Push a value, or pop the top one off.", true);
+        }, 900);
+      }, 260);
+    }, 260);
+  }
+
+  function applySize(){
+    var input = document.getElementById("sizeInput");
+    var n = parseInt(input.value, 10);
+    if(isNaN(n) || n < 2) n = 2;
+    if(n > 12) n = 12;
+    input.value = n;
+    MAX = n;
+    resetStack();
+    setCaption("Max size set to " + MAX + ". Stack reset.", true);
+  }
+
+  function resetStack(){
+    arr = new Array(MAX).fill(null);
+    top = -1;
+    opCount = 0;
+    document.getElementById("opCount").textContent = 0;
+    renderTube();
+    renderLedger();
+    renderCode(-1);
+    setCaption("Push a value to get started.", true);
+  }
+
+  var tabs = document.querySelectorAll(".tab");
+  for(var t=0;t<tabs.length;t++){
+    tabs[t].addEventListener("click", function(e){
+      var target = e.currentTarget;
+      var tabsAll = document.querySelectorAll(".tab");
+      var contents = document.querySelectorAll(".tab-content");
+      for(var a=0;a<tabsAll.length;a++) tabsAll[a].classList.remove("active");
+      for(var b=0;b<contents.length;b++) contents[b].classList.remove("active");
+      target.classList.add("active");
+      document.getElementById(target.dataset.tab).classList.add("active");
+    });
+  }
+
+  renderTube();
+  renderLedger();
+  renderCode(-1);
 </script>
 </body>
 </html>
+        
+
