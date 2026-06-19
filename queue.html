@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Queue — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .queue-stage{display:flex;flex-direction:column;align-items:center;min-height:240px;justify-content:center;gap:10px;}
+  .queue-labels{display:flex;width:100%;max-width:480px;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sage-deep);font-weight:500;padding:0 4px;}
+  .queue-pipe{display:flex;border:2px solid var(--ink);border-radius:8px;min-height:54px;min-width:300px;max-width:480px;padding:4px;gap:4px;align-items:center;}
+  .queue-slot{height:42px;min-width:50px;border-radius:6px;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:15px;animation:slideIn 0.32s ease;flex-shrink:0;}
+  @keyframes slideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Linear · Container</div>
+  <h1>Queue</h1>
+  <p>First in, first out. New values enter at the rear; the oldest leaves from the front.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="queue-stage">
+      <div class="queue-labels"><span>FRONT →</span><span>← REAR</span></div>
+      <div class="queue-pipe" id="pipe"></div>
+    </div>
+    <div class="controls">
+      <input type="number" id="valInput" placeholder="value" />
+      <button class="btn-primary" onclick="enqueue()">Enqueue</button>
+      <button class="btn-dark" onclick="dequeue()">Dequeue</button>
+      <button class="btn-ghost" onclick="resetQueue()">Reset</button>
+    </div>
+    <div class="counters">
+      <div class="counter"><div class="n" id="opCount">0</div><div class="l">Operations</div></div>
+      <div class="counter"><div class="n" id="sizeCount">0</div><div class="l">Current Size</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="vars">Variables</div>
+      <div class="tab" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+      <div class="tab" data-tab="docs">Reference</div>
+    </div>
+
+    <div class="tab-content active" id="vars">
+      <div class="ledger" id="ledgerBox">
+        <div class="ledger-row"><span class="ledger-key">arr[]</span><span class="ledger-val garbage" id="ledgerArr">[ garbage, garbage, garbage, garbage, garbage ]</span></div>
+        <div class="ledger-row"><span class="ledger-key">front</span><span class="ledger-val" id="ledgerFront">-1</span></div>
+        <div class="ledger-row"><span class="ledger-key">rear</span><span class="ledger-val" id="ledgerRear">-1</span></div>
+        <div class="ledger-row"><span class="ledger-key">MAX_SIZE</span><span class="ledger-val">5</span></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="code"><pre class="code" id="codeBlock"></pre></div>
+
+    <div class="tab-content" id="complexity">
+      <table>
+        <tr><th>Operation</th><th>Time</th><th>Space</th></tr>
+        <tr><td>Enqueue</td><td>O(1)</td><td>O(1)</td></tr>
+        <tr><td>Dequeue</td><td>O(1)</td><td>O(1)</td></tr>
+        <tr><td>Peek</td><td>O(1)</td><td>O(1)</td></tr>
+        <tr><td>Overall storage</td><td>—</td><td>O(n)</td></tr>
+      </table>
+    </div>
+
+    <div class="tab-content" id="docs">
+      <div class="links">
+        <a href="https://www.geeksforgeeks.org/queue-data-structure/" target="_blank">GeeksforGeeks — Queue Data Structure</a>
+        <a href="https://en.cppreference.com/w/cpp/container/queue" target="_blank">cppreference — std::queue</a>
+        <a href="https://visualgo.net/en/list" target="_blank">VisuAlgo — Stack &amp; Queue</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Queue — part of the DSA Visualizer collection.</footer>
+
+<script>
+const MAX = 5;
+let arr = new Array(MAX).fill(null);
+let front = -1, rear = -1;
+let opCount = 0;
+
+const codeLines = [
+"#define MAX 5","int arr[MAX];","int front = -1, rear = -1;","",
+"void enqueue(int val) {","    if (rear == MAX - 1) return;","    if (front == -1) front = 0;","    arr[++rear] = val;","}","",
+"int dequeue() {","    if (front == -1) return -1;","    int val = arr[front];",
+"    if (front == rear) { front = rear = -1; }","    else front++;","    return val;","}"
+];
+
+function renderCode(activeLine){
+  document.getElementById('codeBlock').innerHTML = codeLines.map((line,i)=>
+    `<span class="code-line${i===activeLine?' active':''}">${line || '&nbsp;'}</span>`
+  ).join('\n');
+}
+renderCode(-1);
+
+function flashLedger(){
+  const box = document.getElementById('ledgerBox');
+  box.querySelectorAll('.ledger-row').forEach(r=>r.classList.add('flash'));
+  setTimeout(()=>box.querySelectorAll('.ledger-row').forEach(r=>r.classList.remove('flash')),400);
+}
+
+function renderLedger(){
+  const display = arr.map(v => v===null ? '<span class="garbage">garbage</span>' : v).join(', ');
+  document.getElementById('ledgerArr').innerHTML = `[ ${display} ]`;
+  document.getElementById('ledgerFront').textContent = front;
+  document.getElementById('ledgerRear').textContent = rear;
+}
+
+function renderPipe(){
+  const pipe = document.getElementById('pipe');
+  pipe.innerHTML = '';
+  if(front !== -1){
+    for(let i=front;i<=rear;i++){
+      const slot = document.createElement('div');
+      slot.className = 'queue-slot';
+      slot.textContent = arr[i];
+      pipe.appendChild(slot);
+    }
+  }
+  document.getElementById('sizeCount').textContent = front===-1 ? 0 : (rear-front+1);
+}
+
+function enqueue(){
+  const input = document.getElementById('valInput');
+  const val = input.value;
+  if(val === '' || rear === MAX-1) return;
+  renderCode(5);
+  setTimeout(()=>{
+    if(front===-1) front = 0;
+    rear++; arr[rear] = Number(val);
+    renderPipe(); renderLedger(); flashLedger();
+    opCount++; document.getElementById('opCount').textContent = opCount;
+    input.value='';
+    setTimeout(()=>renderCode(-1), 500);
+  }, 150);
+}
+
+function dequeue(){
+  if(front === -1) return;
+  renderCode(10);
+  setTimeout(()=>{
+    arr[front] = null;
+    if(front === rear){ front = -1; rear = -1; } else { front++; }
+    renderPipe(); renderLedger(); flashLedger();
+    opCount++; document.getElementById('opCount').textContent = opCount;
+    setTimeout(()=>renderCode(-1), 500);
+  }, 150);
+}
+
+function resetQueue(){
+  arr = new Array(MAX).fill(null); front = -1; rear = -1; opCount = 0;
+  document.getElementById('opCount').textContent = 0;
+  renderPipe(); renderLedger();
+}
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+renderPipe(); renderLedger();
+</script>
+</body>
+</html>

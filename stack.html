@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stack — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .stack-stage{display:flex;flex-direction:column;align-items:center;min-height:340px;justify-content:flex-end;position:relative;padding:12px 0;}
+  .stack-tube{width:160px;border:2px solid var(--ink);border-top:none;border-radius:0 0 8px 8px;display:flex;flex-direction:column-reverse;min-height:280px;position:relative;padding:4px;gap:4px;}
+  .top-label{position:absolute;left:-86px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sage-deep);font-weight:500;}
+  .stack-slot{height:42px;border-radius:6px;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:15px;animation:dropIn 0.32s ease;flex-shrink:0;}
+  @keyframes dropIn{from{transform:translateY(-30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Linear · Container</div>
+  <h1>Stack</h1>
+  <p>Last in, first out. Every push lands on top; every pop leaves from the top.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="stack-stage">
+      <div class="stack-tube" id="tube">
+        <span class="top-label" id="topLabel" style="bottom:0">TOP → -1</span>
+      </div>
+    </div>
+    <div class="controls">
+      <input type="number" id="valInput" placeholder="value" />
+      <button class="btn-primary" onclick="push()">Push</button>
+      <button class="btn-dark" onclick="pop()">Pop</button>
+      <button class="btn-ghost" onclick="resetStack()">Reset</button>
+    </div>
+    <div class="counters">
+      <div class="counter"><div class="n" id="opCount">0</div><div class="l">Operations</div></div>
+      <div class="counter"><div class="n" id="sizeCount">0</div><div class="l">Current Size</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="vars">Variables</div>
+      <div class="tab" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+      <div class="tab" data-tab="docs">Reference</div>
+    </div>
+
+    <div class="tab-content active" id="vars">
+      <div class="ledger" id="ledgerBox">
+        <div class="ledger-row"><span class="ledger-key">arr[]</span><span class="ledger-val garbage" id="ledgerArr">[ garbage, garbage, garbage, garbage, garbage ]</span></div>
+        <div class="ledger-row"><span class="ledger-key">top</span><span class="ledger-val" id="ledgerTop">-1</span></div>
+        <div class="ledger-row"><span class="ledger-key">MAX_SIZE</span><span class="ledger-val">5</span></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="code"><pre class="code" id="codeBlock"></pre></div>
+
+    <div class="tab-content" id="complexity">
+      <table>
+        <tr><th>Operation</th><th>Time</th><th>Space</th></tr>
+        <tr><td>Push</td><td>O(1)</td><td>O(1)</td></tr>
+        <tr><td>Pop</td><td>O(1)</td><td>O(1)</td></tr>
+        <tr><td>Peek</td><td>O(1)</td><td>O(1)</td></tr>
+        <tr><td>Overall storage</td><td>—</td><td>O(n)</td></tr>
+      </table>
+    </div>
+
+    <div class="tab-content" id="docs">
+      <div class="links">
+        <a href="https://www.geeksforgeeks.org/stack-data-structure/" target="_blank">GeeksforGeeks — Stack Data Structure</a>
+        <a href="https://en.cppreference.com/w/cpp/container/stack" target="_blank">cppreference — std::stack</a>
+        <a href="https://visualgo.net/en/list" target="_blank">VisuAlgo — Stack &amp; Queue</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Stack — part of the DSA Visualizer collection.</footer>
+
+<script>
+const MAX = 5;
+let arr = new Array(MAX).fill(null);
+let top = -1;
+let opCount = 0;
+
+const codeLines = [
+"#define MAX 5","int arr[MAX];","int top = -1;","",
+"void push(int val) {","    if (top == MAX - 1) return;","    arr[++top] = val;","}","",
+"int pop() {","    if (top == -1) return -1;","    return arr[top--];","}"
+];
+
+function renderCode(activeLine){
+  document.getElementById('codeBlock').innerHTML = codeLines.map((line,i)=>
+    `<span class="code-line${i===activeLine?' active':''}">${line || '&nbsp;'}</span>`
+  ).join('\n');
+}
+renderCode(-1);
+
+function flashLedger(){
+  const box = document.getElementById('ledgerBox');
+  box.querySelectorAll('.ledger-row').forEach(r=>r.classList.add('flash'));
+  setTimeout(()=>box.querySelectorAll('.ledger-row').forEach(r=>r.classList.remove('flash')),400);
+}
+
+function renderLedger(){
+  const display = arr.map(v => v===null ? '<span class="garbage">garbage</span>' : v).join(', ');
+  document.getElementById('ledgerArr').innerHTML = `[ ${display} ]`;
+  document.getElementById('ledgerTop').textContent = top;
+}
+
+function renderTube(){
+  const tube = document.getElementById('tube');
+  tube.innerHTML = '';
+  for(let i=0;i<=top;i++){
+    const slot = document.createElement('div');
+    slot.className = 'stack-slot';
+    slot.textContent = arr[i];
+    tube.appendChild(slot);
+  }
+  const label = document.createElement('span');
+  label.className = 'top-label';
+  label.style.bottom = (top>=0 ? (top*46 + 4) : 0) + 'px';
+  label.textContent = `TOP → ${top}`;
+  tube.appendChild(label);
+  document.getElementById('sizeCount').textContent = top+1;
+}
+
+function push(){
+  const input = document.getElementById('valInput');
+  const val = input.value;
+  if(val === '' || top === MAX-1) return;
+  renderCode(5);
+  setTimeout(()=>{
+    top++; arr[top] = Number(val);
+    renderTube(); renderLedger(); flashLedger();
+    opCount++; document.getElementById('opCount').textContent = opCount;
+    input.value='';
+    setTimeout(()=>renderCode(-1), 500);
+  }, 150);
+}
+
+function pop(){
+  if(top === -1) return;
+  renderCode(11);
+  setTimeout(()=>{
+    arr[top] = null; top--;
+    renderTube(); renderLedger(); flashLedger();
+    opCount++; document.getElementById('opCount').textContent = opCount;
+    setTimeout(()=>renderCode(-1), 500);
+  }, 150);
+}
+
+function resetStack(){
+  arr = new Array(MAX).fill(null); top = -1; opCount = 0;
+  document.getElementById('opCount').textContent = 0;
+  renderTube(); renderLedger();
+}
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+renderTube(); renderLedger();
+</script>
+</body>
+</html>

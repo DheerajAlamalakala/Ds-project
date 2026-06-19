@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorting — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .histogram{display:flex;align-items:flex-end;gap:6px;height:260px;padding:10px;}
+  .bar{flex:1;border-radius:4px 4px 0 0;background:var(--sage);position:relative;transition:height 0.25s ease, background 0.2s ease;display:flex;justify-content:center;}
+  .bar span{position:absolute;top:-20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);}
+  .bar.comparing{background:var(--gold);}
+  .bar.swapping{background:var(--rose);}
+  .bar.sorted{background:var(--sage-deep);}
+  .algo-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .algo-tab{padding:7px 14px;border-radius:18px;font-size:12px;font-family:'JetBrains Mono',monospace;border:1px solid var(--line);cursor:pointer;color:var(--ink-soft);}
+  .algo-tab.active{background:var(--sage);color:#fff;border-color:var(--sage);}
+  .speed-row{display:flex;align-items:center;gap:10px;margin-top:10px;justify-content:center;}
+  .speed-row label{font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Sorting</div>
+  <h1 id="algoTitle">Quick Sort</h1>
+  <p>Watch comparisons in gold and swaps in rust, until every bar settles into place.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="algo-tabs">
+      <span class="algo-tab" data-algo="quick">Quick Sort</span>
+      <span class="algo-tab" data-algo="merge">Merge Sort</span>
+      <span class="algo-tab" data-algo="heap">Heap Sort</span>
+    </div>
+    <div class="histogram" id="histogram"></div>
+    <div class="controls">
+      <button class="btn-primary" onclick="play()">Play</button>
+      <button class="btn-ghost" onclick="step()">Step</button>
+      <button class="btn-dark" onclick="pauseRun()">Pause</button>
+      <button class="btn-ghost" onclick="randomize()">Randomize</button>
+    </div>
+    <div class="speed-row">
+      <label>Speed</label>
+      <input type="range" id="speed" min="40" max="600" value="220">
+    </div>
+    <div class="counters">
+      <div class="counter"><div class="n" id="cmpCount">0</div><div class="l">Comparisons</div></div>
+      <div class="counter"><div class="n" id="swapCount">0</div><div class="l">Swaps</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+      <div class="tab" data-tab="docs">Reference</div>
+    </div>
+    <div class="tab-content active" id="code"><pre class="code" id="codeBlock"></pre></div>
+    <div class="tab-content" id="complexity">
+      <table id="complexityTable"></table>
+    </div>
+    <div class="tab-content" id="docs">
+      <div class="links">
+        <a href="https://www.geeksforgeeks.org/quick-sort-algorithm/" target="_blank">GeeksforGeeks — Quick Sort</a>
+        <a href="https://www.geeksforgeeks.org/merge-sort/" target="_blank">GeeksforGeeks — Merge Sort</a>
+        <a href="https://www.geeksforgeeks.org/heap-sort/" target="_blank">GeeksforGeeks — Heap Sort</a>
+        <a href="https://visualgo.net/en/sorting" target="_blank">VisuAlgo — Sorting</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Sorting — part of the DSA Visualizer collection.</footer>
+
+<script>
+let arr = [];
+let gen = null;
+let timer = null;
+let cmp = 0, swp = 0;
+let currentAlgo = 'quick';
+
+const codeBlocks = {
+quick: `int partition(int a[], int lo, int hi) {
+    int pivot = a[hi];
+    int i = lo - 1;
+    for (int j = lo; j < hi; j++) {
+        if (a[j] < pivot) {
+            i++;
+            swap(&a[i], &a[j]);
+        }
+    }
+    swap(&a[i+1], &a[hi]);
+    return i + 1;
+}
+
+void quickSort(int a[], int lo, int hi) {
+    if (lo < hi) {
+        int p = partition(a, lo, hi);
+        quickSort(a, lo, p - 1);
+        quickSort(a, p + 1, hi);
+    }
+}`,
+merge: `void merge(int a[], int lo, int mid, int hi) {
+    int left[mid-lo+1], right[hi-mid];
+    // copy halves, then merge back
+    int i=0, j=0, k=lo;
+    while (i < leftLen && j < rightLen) {
+        if (left[i] <= right[j]) a[k++] = left[i++];
+        else a[k++] = right[j++];
+    }
+    while (i < leftLen) a[k++] = left[i++];
+    while (j < rightLen) a[k++] = right[j++];
+}
+
+void mergeSort(int a[], int lo, int hi) {
+    if (lo >= hi) return;
+    int mid = (lo + hi) / 2;
+    mergeSort(a, lo, mid);
+    mergeSort(a, mid + 1, hi);
+    merge(a, lo, mid, hi);
+}`,
+heap: `void heapify(int a[], int n, int i) {
+    int largest = i, l = 2*i+1, r = 2*i+2;
+    if (l < n && a[l] > a[largest]) largest = l;
+    if (r < n && a[r] > a[largest]) largest = r;
+    if (largest != i) {
+        swap(&a[i], &a[largest]);
+        heapify(a, n, largest);
+    }
+}
+
+void heapSort(int a[], int n) {
+    for (int i = n/2 - 1; i >= 0; i--) heapify(a, n, i);
+    for (int i = n - 1; i > 0; i--) {
+        swap(&a[0], &a[i]);
+        heapify(a, i, 0);
+    }
+}`
+};
+
+const complexityRows = {
+quick: [["Best","O(n log n)"],["Average","O(n log n)"],["Worst","O(n\u00B2)"],["Space","O(log n)"]],
+merge: [["Best","O(n log n)"],["Average","O(n log n)"],["Worst","O(n log n)"],["Space","O(n)"]],
+heap: [["Best","O(n log n)"],["Average","O(n log n)"],["Worst","O(n log n)"],["Space","O(1)"]]
+};
+
+function renderComplexity(){
+  const rows = complexityRows[currentAlgo];
+  document.getElementById('complexityTable').innerHTML =
+    '<tr><th>Case</th><th>Time / Space</th></tr>' +
+    rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+}
+
+function renderCode(){
+  document.getElementById('codeBlock').textContent = codeBlocks[currentAlgo];
+}
+
+function* quickSortGen(a, lo, hi, sorted){
+  if(lo < hi){
+    let pivot = a[hi], i = lo - 1;
+    for(let j=lo;j<hi;j++){
+      yield {comparing:[j,hi]};
+      if(a[j] < pivot){
+        i++;
+        [a[i],a[j]] = [a[j],a[i]];
+        yield {swapping:[i,j]};
+      }
+    }
+    [a[i+1],a[hi]] = [a[hi],a[i+1]];
+    yield {swapping:[i+1,hi]};
+    sorted.add(i+1);
+    yield* quickSortGen(a, lo, i, sorted);
+    yield* quickSortGen(a, i+2, hi, sorted);
+  } else if(lo === hi && lo >= 0){
+    sorted.add(lo);
+  }
+}
+
+function* mergeSortGen(a, lo, hi){
+  if(lo >= hi) return;
+  const mid = Math.floor((lo+hi)/2);
+  yield* mergeSortGen(a, lo, mid);
+  yield* mergeSortGen(a, mid+1, hi);
+  let left = a.slice(lo, mid+1), right = a.slice(mid+1, hi+1);
+  let i=0, j=0, k=lo;
+  while(i < left.length && j < right.length){
+    yield {comparing:[lo+i, mid+1+j]};
+    if(left[i] <= right[j]) a[k] = left[i++]; else a[k] = right[j++];
+    yield {swapping:[k]};
+    k++;
+  }
+  while(i < left.length){ a[k] = left[i++]; yield {swapping:[k]}; k++; }
+  while(j < right.length){ a[k] = right[j++]; yield {swapping:[k]}; k++; }
+}
+
+function* heapSortGen(a){
+  const n = a.length;
+  function* heapify(size, i){
+    let largest = i, l = 2*i+1, r = 2*i+2;
+    if(l < size){ yield {comparing:[l,largest]}; if(a[l] > a[largest]) largest = l; }
+    if(r < size){ yield {comparing:[r,largest]}; if(a[r] > a[largest]) largest = r; }
+    if(largest !== i){
+      [a[i],a[largest]] = [a[largest],a[i]];
+      yield {swapping:[i,largest]};
+      yield* heapify(size, largest);
+    }
+  }
+  for(let i=Math.floor(n/2)-1;i>=0;i--) yield* heapify(n,i);
+  let sortedIdx = [];
+  for(let i=n-1;i>0;i--){
+    [a[0],a[i]] = [a[i],a[0]];
+    sortedIdx.push(i);
+    yield {swapping:[0,i], sorted:[...sortedIdx]};
+    yield* heapify(i,0);
+  }
+  sortedIdx.push(0);
+  yield {sorted:[...sortedIdx]};
+}
+
+function makeGen(){
+  const a = [...arr];
+  if(currentAlgo === 'quick') return {it: quickSortGen(a, 0, a.length-1, new Set()), data:a};
+  if(currentAlgo === 'merge') return {it: mergeSortGen(a, 0, a.length-1), data:a};
+  return {it: heapSortGen(a), data:a};
+}
+
+let activeGen, activeData, sortedFinal = new Set();
+
+function resetRun(){
+  pauseRun();
+  cmp = 0; swp = 0; sortedFinal = new Set();
+  document.getElementById('cmpCount').textContent = 0;
+  document.getElementById('swapCount').textContent = 0;
+  const g = makeGen();
+  activeGen = g.it; activeData = g.data;
+  renderBars({});
+}
+
+function renderBars(state){
+  const max = Math.max(...activeData, 1);
+  const histogram = document.getElementById('histogram');
+  histogram.innerHTML = activeData.map((v,idx)=>{
+    let cls = 'bar';
+    if(state.comparing && state.comparing.includes(idx)) cls += ' comparing';
+    if(state.swapping && state.swapping.includes(idx)) cls += ' swapping';
+    if((state.sorted && state.sorted.includes(idx)) || sortedFinal.has(idx)) cls += ' sorted';
+    const h = Math.max(8, (v/max)*220);
+    return `<div class="${cls}" style="height:${h}px"><span>${v}</span></div>`;
+  }).join('');
+}
+
+function step(){
+  if(!activeGen) resetRun();
+  const result = activeGen.next();
+  if(result.done){
+    sortedFinal = new Set(activeData.map((_,i)=>i));
+    renderBars({});
+    pauseRun();
+    return false;
+  }
+  const state = result.value || {};
+  if(state.comparing){ cmp++; document.getElementById('cmpCount').textContent = cmp; }
+  if(state.swapping){ swp++; document.getElementById('swapCount').textContent = swp; }
+  if(state.sorted) state.sorted.forEach(i=>sortedFinal.add(i));
+  renderBars(state);
+  return true;
+}
+
+function play(){
+  pauseRun();
+  const speed = 650 - Number(document.getElementById('speed').value);
+  timer = setInterval(()=>{
+    const cont = step();
+    if(!cont) pauseRun();
+  }, Math.max(40, speed));
+}
+
+function pauseRun(){ if(timer){ clearInterval(timer); timer = null; } }
+
+function randomize(){
+  arr = Array.from({length:10}, ()=>Math.floor(Math.random()*90)+10);
+  resetRun();
+}
+
+function setAlgo(algo){
+  currentAlgo = algo;
+  document.querySelectorAll('.algo-tab').forEach(t=>t.classList.toggle('active', t.dataset.algo===algo));
+  document.getElementById('algoTitle').textContent =
+    algo==='quick' ? 'Quick Sort' : algo==='merge' ? 'Merge Sort' : 'Heap Sort';
+  renderCode();
+  renderComplexity();
+  resetRun();
+}
+
+document.querySelectorAll('.algo-tab').forEach(t=>{
+  t.addEventListener('click', ()=>setAlgo(t.dataset.algo));
+});
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+const params = new URLSearchParams(window.location.search);
+const initAlgo = params.get('algo') || 'quick';
+arr = [62, 11, 47, 8, 29, 90, 35, 5, 71, 18];
+setAlgo(['quick','merge','heap'].includes(initAlgo) ? initAlgo : 'quick');
+</script>
+</body>
+</html>

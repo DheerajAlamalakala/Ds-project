@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binary Search Tree — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .tree-stage{width:100%;min-height:300px;}
+  .tree-node circle{fill:var(--sage);stroke:var(--sage-deep);stroke-width:1.5;transition:fill 0.3s ease;}
+  .tree-node circle.visiting{fill:var(--gold);stroke:var(--gold);}
+  .tree-node circle.done{fill:var(--sage-deep);}
+  .tree-node text{fill:#fff;font-family:'JetBrains Mono',monospace;font-size:13px;text-anchor:middle;dominant-baseline:central;font-weight:500;}
+  .tree-edge{stroke:var(--line);stroke-width:2;}
+  .traversal-row{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap;}
+  .out-strip{display:flex;gap:6px;min-height:44px;flex-wrap:wrap;align-items:center;}
+  .out-slot{width:38px;height:38px;border-radius:6px;background:var(--sage-pale);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--sage-deep);animation:popIn 0.3s ease;}
+  @keyframes popIn{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .mode-tab{padding:6px 12px;border-radius:16px;font-size:12px;font-family:'JetBrains Mono',monospace;border:1px solid var(--line);cursor:pointer;color:var(--ink-soft);}
+  .mode-tab.active{background:var(--sage);color:#fff;border-color:var(--sage);}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Tree · Traversal</div>
+  <h1>Binary Search Tree</h1>
+  <p>Smaller values branch left, larger values branch right. Traverse it inorder, preorder, or postorder.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <svg class="tree-stage" id="svg" viewBox="0 0 600 300"></svg>
+    <div class="controls">
+      <input type="number" id="valInput" placeholder="value" />
+      <button class="btn-primary" onclick="insertVal()">Insert</button>
+      <button class="btn-ghost" onclick="resetTree()">Reset</button>
+    </div>
+    <div class="traversal-row">
+      <span class="mode-tab active" data-mode="in">Inorder</span>
+      <span class="mode-tab" data-mode="pre">Preorder</span>
+      <span class="mode-tab" data-mode="post">Postorder</span>
+      <button class="btn-dark" onclick="runTraversal()" style="margin-left:auto;">Traverse</button>
+    </div>
+    <div class="eyebrow" style="text-align:left;margin-top:18px;">Output</div>
+    <div class="out-strip" id="outStrip"></div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+      <div class="tab" data-tab="docs">Reference</div>
+    </div>
+
+    <div class="tab-content active" id="code"><pre class="code" id="codeBlock"></pre></div>
+
+    <div class="tab-content" id="complexity">
+      <table>
+        <tr><th>Operation</th><th>Average</th><th>Worst</th></tr>
+        <tr><td>Search</td><td>O(log n)</td><td>O(n)</td></tr>
+        <tr><td>Insert</td><td>O(log n)</td><td>O(n)</td></tr>
+        <tr><td>Traversal</td><td>O(n)</td><td>O(n)</td></tr>
+        <tr><td>Space</td><td>O(n)</td><td>O(n)</td></tr>
+      </table>
+    </div>
+
+    <div class="tab-content" id="docs">
+      <div class="links">
+        <a href="https://www.geeksforgeeks.org/binary-search-tree-data-structure/" target="_blank">GeeksforGeeks — Binary Search Tree</a>
+        <a href="https://www.geeksforgeeks.org/tree-traversals-inorder-preorder-and-postorder/" target="_blank">GeeksforGeeks — Tree Traversals</a>
+        <a href="https://visualgo.net/en/bst" target="_blank">VisuAlgo — BST</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Binary Search Tree — part of the DSA Visualizer collection.</footer>
+
+<script>
+let root = null;
+let mode = 'in';
+let idCounter = 0;
+
+const codeSets = {
+  insert: ["struct Node {","    int data;","    struct Node *left, *right;","};","",
+    "struct Node* insert(struct Node* root, int val) {","    if (root == NULL) {",
+    "        struct Node* n = malloc(sizeof(struct Node));","        n->data = val;",
+    "        n->left = n->right = NULL;","        return n;","    }",
+    "    if (val < root->data) root->left = insert(root->left, val);",
+    "    else root->right = insert(root->right, val);","    return root;","}"],
+  in: ["void inorder(struct Node* root) {","    if (root == NULL) return;",
+    "    inorder(root->left);","    printf(\"%d \", root->data);","    inorder(root->right);","}"],
+  pre: ["void preorder(struct Node* root) {","    if (root == NULL) return;",
+    "    printf(\"%d \", root->data);","    preorder(root->left);","    preorder(root->right);","}"],
+  post: ["void postorder(struct Node* root) {","    if (root == NULL) return;",
+    "    postorder(root->left);","    postorder(root->right);","    printf(\"%d \", root->data);","}"]
+};
+
+function renderCodeSet(key){
+  document.getElementById('codeBlock').innerHTML = codeSets[key].map(l=>`<span class="code-line">${l||'&nbsp;'}</span>`).join('\n');
+}
+renderCodeSet('insert');
+
+function newNode(val){ return {id: idCounter++, val, left:null, right:null}; }
+
+function insertNode(node, val){
+  if(!node) return newNode(val);
+  if(val < node.val) node.left = insertNode(node.left, val);
+  else if(val > node.val) node.right = insertNode(node.right, val);
+  return node;
+}
+
+function insertVal(){
+  const input = document.getElementById('valInput');
+  if(input.value === '') return;
+  root = insertNode(root, Number(input.value));
+  input.value = '';
+  renderCodeSet('insert');
+  drawTree();
+}
+
+function resetTree(){ root = null; document.getElementById('outStrip').innerHTML=''; drawTree(); }
+
+function layout(node, depth, xMin, xMax, positions){
+  if(!node) return;
+  const x = (xMin+xMax)/2;
+  const y = 50 + depth*70;
+  positions[node.id] = {x, y, node};
+  layout(node.left, depth+1, xMin, x, positions);
+  layout(node.right, depth+1, x, xMax, positions);
+}
+
+function drawTree(){
+  const svg = document.getElementById('svg');
+  svg.innerHTML = '';
+  if(!root) return;
+  const positions = {};
+  layout(root, 0, 20, 580, positions);
+
+  function drawEdges(node){
+    if(!node) return;
+    const p = positions[node.id];
+    if(node.left){
+      const c = positions[node.left.id];
+      svg.insertAdjacentHTML('beforeend', `<line class="tree-edge" x1="${p.x}" y1="${p.y}" x2="${c.x}" y2="${c.y}"/>`);
+      drawEdges(node.left);
+    }
+    if(node.right){
+      const c = positions[node.right.id];
+      svg.insertAdjacentHTML('beforeend', `<line class="tree-edge" x1="${p.x}" y1="${p.y}" x2="${c.x}" y2="${c.y}"/>`);
+      drawEdges(node.right);
+    }
+  }
+  drawEdges(root);
+
+  Object.values(positions).forEach(({x,y,node})=>{
+    svg.insertAdjacentHTML('beforeend', `<g class="tree-node" id="node-${node.id}"><circle cx="${x}" cy="${y}" r="18"/><text x="${x}" y="${y}">${node.val}</text></g>`);
+  });
+}
+
+document.querySelectorAll('.mode-tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.mode-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    mode = t.dataset.mode;
+    renderCodeSet(mode);
+  });
+});
+
+function collectOrder(node, mode, out){
+  if(!node) return;
+  if(mode==='pre') out.push(node);
+  collectOrder(node.left, mode, out);
+  if(mode==='in') out.push(node);
+  collectOrder(node.right, mode, out);
+  if(mode==='post') out.push(node);
+}
+
+async function runTraversal(){
+  if(!root) return;
+  document.getElementById('outStrip').innerHTML = '';
+  document.querySelectorAll('.tree-node circle').forEach(c=>c.classList.remove('visiting','done'));
+  const order = [];
+  collectOrder(root, mode, order);
+  for(const node of order){
+    const circle = document.querySelector(`#node-${node.id} circle`);
+    circle.classList.add('visiting');
+    await new Promise(r=>setTimeout(r, 550));
+    circle.classList.remove('visiting');
+    circle.classList.add('done');
+    const slot = document.createElement('div');
+    slot.className = 'out-slot';
+    slot.textContent = node.val;
+    document.getElementById('outStrip').appendChild(slot);
+  }
+}
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+[35,20,50,10,28,42,60].forEach(v=>{ root = insertNode(root, v); });
+drawTree();
+</script>
+</body>
+</html>
