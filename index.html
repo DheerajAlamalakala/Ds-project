@@ -3,167 +3,168 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DSA Visualizer</title>
+<title>Dashboard — Comprehensive DSA Visualizer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <style>
-  .hero{
-    padding:90px 32px 70px;
-    text-align:center;
-    border-bottom:1px solid var(--line);
-    position:relative;
-    overflow:hidden;
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    margin-top: 20px;
   }
-  .hero::before{
-    content:'';
-    position:absolute;
-    top:-120px;left:50%;
-    width:680px;height:680px;
-    transform:translateX(-50%);
-    background:radial-gradient(circle, var(--sage-pale) 0%, transparent 70%);
-    z-index:0;
+  @media(min-width: 768px) {
+    .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
   }
-  .hero-inner{position:relative;z-index:1;}
-  .hero .eyebrow{justify-content:center;display:flex;}
-  .hero h1{
-    font-family:'Fraunces',serif;
-    font-weight:500;
-    font-size:clamp(40px,7vw,72px);
-    margin:0 0 16px;
-    letter-spacing:-0.015em;
+  @media(min-width: 1024px) {
+    .dashboard-grid { grid-template-columns: repeat(3, 1fr); }
   }
-  .hero h1 em{font-style:italic;color:var(--sage-deep);font-weight:400;}
-  .hero p{
-    font-size:16px;
-    color:var(--ink-soft);
-    max-width:520px;
-    margin:0 auto 30px;
-    line-height:1.6;
+  .category-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
   }
-  .hero-stats{
-    display:flex;
-    gap:36px;
-    justify-content:center;
-    flex-wrap:wrap;
+  .category-card h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 22px;
+    margin: 0 0 16px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
   }
-  .hero-stats div{text-align:center;}
-  .hero-stats .n{font-family:'Fraunces',serif;font-size:30px;color:var(--sage-deep);}
-  .hero-stats .l{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);}
-
-  .catalog{max-width:1180px;margin:0 auto;padding:60px 24px 100px;}
-  .section-label{
-    font-family:'JetBrains Mono',monospace;
-    font-size:12px;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:var(--gold);
-    margin:50px 0 6px;
+  .topic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
-  .section-label:first-child{margin-top:0;}
-  .section-title{
-    font-family:'Fraunces',serif;
-    font-style:italic;
-    font-size:24px;
-    color:var(--ink);
-    margin:0 0 22px;
+  .topic-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: var(--porcelain);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
   }
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-    gap:16px;
+  .topic-item:hover {
+    border-color: var(--gold);
+    background: var(--paper);
+    transform: translateX(3px);
   }
-  .card{
-    background:var(--paper);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    padding:22px 20px;
-    text-decoration:none;
-    color:var(--ink);
-    display:block;
-    box-shadow:var(--shadow);
-    transition:transform 0.2s ease, border-color 0.2s ease;
-    position:relative;
+  .topic-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
   }
-  .card:hover{transform:translateY(-3px);border-color:var(--gold);}
-  .card .tag{
-    font-family:'JetBrains Mono',monospace;
-    font-size:11px;
-    color:var(--sage-deep);
-    text-transform:uppercase;
-    letter-spacing:0.05em;
-  }
-  .card h3{
-    font-family:'Fraunces',serif;
-    font-weight:500;
-    font-size:18px;
-    margin:8px 0 6px;
-  }
-  .card p{font-size:12.5px;color:var(--ink-soft);margin:0;line-height:1.5;}
-  .card.disabled{opacity:0.45;pointer-events:none;}
-  .card .soon{
-    position:absolute;top:18px;right:18px;
-    font-family:'JetBrains Mono',monospace;
-    font-size:10px;
-    color:var(--rose);
-    text-transform:uppercase;
+  .topic-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--gold);
   }
 </style>
 </head>
 <body>
-
 <nav class="site-nav">
-  <a class="brand" href="index.html">DSA Visualizer</a>
-  <a class="back" href="https://github.com/" target="_blank">View on GitHub →</a>
+  <a class="brand" href="index.html">DSA Visualizer Suite</a>
+  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">v1.0.0 Complete</span>
 </nav>
 
-<section class="hero">
-  <div class="hero-inner">
-    <div class="eyebrow">A lab project, made visible</div>
-    <h1>Data structures, <em>seen</em> not just studied.</h1>
-    <p>Every push, pointer, and partition — animated, annotated with C, and traced line by line like a debugger.</p>
-    <div class="hero-stats">
-      <div><div class="n">17</div><div class="l">Topics</div></div>
-      <div><div class="n">3</div><div class="l">Categories</div></div>
-      <div><div class="n">C</div><div class="l">Reference language</div></div>
+<header class="page-head">
+  <div class="eyebrow">Lab Workspace Component</div>
+  <h1>Data Structures & Algorithms Visualizer</h1>
+  <p>An interactive, multi-module dashboard mapped with step captions, memory trace states, and real-time executions.</p>
+</header>
+
+<main style="max-width: 1200px; margin: 0 auto; padding: 40px 24px;">
+  <div class="dashboard-grid">
+    
+    <div class="category-card">
+      <h2>Linear Containers</h2>
+      <div class="topic-list">
+        <a href="stack.html" class="topic-item">
+          <span class="topic-title">Stack Array</span>
+          <span class="topic-arrow">→</span>
+        </a>
+        <a href="queue.html" class="topic-item">
+          <span class="topic-title">Linear Queue</span>
+          <span class="topic-arrow">→</span>
+        </a>
+        <a href="circular-queue.html" class="topic-item">
+          <span class="topic-title">Circular Queue</span>
+          <span class="topic-arrow">→</span>
+        </a>
+      </div>
     </div>
+
+    <div class="category-card">
+      <h2>Linked Structures</h2>
+      <div class="topic-list">
+        <a href="linked-list.html" class="topic-item">
+          <span class="topic-title">Singly Linked List</span>
+          <span class="topic-arrow">→</span>
+        </a>
+        <a href="doubly-linked-list.html" class="topic-item">
+          <span class="topic-title">Doubly Linked List</span>
+          <span class="topic-arrow">→</span>
+        </a>
+        <a href="circular-linked-list.html" class="topic-item">
+          <span class="topic-title">Circular Linked List</span>
+          <span class="topic-arrow">→</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="category-card">
+      <h2>Hierarchical Trees</h2>
+      <div class="topic-list">
+        <a href="binary-tree.html" class="topic-item">
+          <span class="topic-title">Binary Tree Bounds</span>
+          <span class="topic-arrow">→</span>
+        </a>
+        <a href="bst.html" class="topic-item">
+          <span class="topic-title">Binary Search Tree (BST)</span>
+          <span class="topic-arrow">→</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="category-card">
+      <h2>Notation & Parsing</h2>
+      <div class="topic-list">
+        <a href="expression-converter.html" class="topic-item">
+          <span class="topic-title">Infix / Postfix / Prefix</span>
+          <span class="topic-arrow">→</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="category-card">
+      <h2>Sorting Pipelines</h2>
+      <div class="topic-list">
+        <a href="sorting.html" class="topic-item">
+          <span class="topic-title">Comparison Sorts (Quick/Merge/Heap)</span>
+          <span class="topic-arrow">→</span>
+        </a>
+        <a href="tree-sort.html" class="topic-item">
+          <span class="topic-title">Tree Sort Execution</span>
+          <span class="topic-arrow">→</span>
+        </a>
+        <a href="radix-sort.html" class="topic-item">
+          <span class="topic-title">Radix Bucket Sort</span>
+          <span class="topic-arrow">→</span>
+        </a>
+      </div>
+    </div>
+
   </div>
-</section>
+</main>
 
-<div class="catalog">
-
-  <div class="section-label">I — Linear &amp; Linked</div>
-  <h2 class="section-title">Structures that remember order</h2>
-  <div class="grid">
-    <a class="card" href="stack.html"><span class="tag">Container</span><h3>Stack</h3><p>LIFO — push and pop from the top.</p></a>
-    <a class="card" href="queue.html"><span class="tag">Container</span><h3>Queue</h3><p>FIFO — enqueue at the rear, dequeue from the front.</p></a>
-    <a class="card disabled" href="#"><span class="soon">Soon</span><span class="tag">Container</span><h3>Circular Queue</h3><p>A queue that wraps its rear back to the front.</p></a>
-    <a class="card disabled" href="#"><span class="soon">Soon</span><span class="tag">Pointers</span><h3>Linked List</h3><p>Nodes joined by a single forward pointer.</p></a>
-    <a class="card disabled" href="#"><span class="soon">Soon</span><span class="tag">Pointers</span><h3>Doubly Linked List</h3><p>Forward and backward links between nodes.</p></a>
-    <a class="card disabled" href="#"><span class="soon">Soon</span><span class="tag">Pointers</span><h3>Circular Linked List</h3><p>The tail points back to the head.</p></a>
-  </div>
-
-  <div class="section-label">II — Trees &amp; Traversal</div>
-  <h2 class="section-title">Structures that branch</h2>
-  <div class="grid">
-    <a class="card" href="bst.html"><span class="tag">Tree</span><h3>Binary Search Tree</h3><p>Insert, search, and traverse — inorder, preorder, postorder.</p></a>
-    <a class="card disabled" href="#"><span class="soon">Soon</span><span class="tag">Tree</span><h3>Binary Tree</h3><p>Unordered branching, traversed the same three ways.</p></a>
-    <a class="card disabled" href="#"><span class="soon">Soon</span><span class="tag">Notation</span><h3>Infix / Postfix / Prefix</h3><p>Expression conversion, evaluated on a stack.</p></a>
-  </div>
-
-  <div class="section-label">III — Sorting</div>
-  <h2 class="section-title">Structures that settle into order</h2>
-  <div class="grid">
-    <a class="card" href="sorting.html?algo=quick"><span class="tag">O(n log n)</span><h3>Quick Sort</h3><p>Partition around a pivot, recursively.</p></a>
-    <a class="card" href="sorting.html?algo=merge"><span class="tag">O(n log n)</span><h3>Merge Sort</h3><p>Divide, sort, and merge back together.</p></a>
-    <a class="card" href="sorting.html?algo=heap"><span class="tag">O(n log n)</span><h3>Heap Sort</h3><p>Build a heap, repeatedly extract the max.</p></a>
-    <a class="card disabled" href="#"><span class="soon">Soon</span><span class="tag">O(n log n)</span><h3>Tree Sort</h3><p>Insert into a BST, read back inorder.</p></a>
-    <a class="card disabled" href="#"><span class="soon">Soon</span><span class="tag">O(nk)</span><h3>Radix Sort</h3><p>Sort digit by digit, least significant first.</p></a>
-  </div>
-
-</div>
-
-<footer>Built as a self-directed DSA lab project — C reference implementations throughout.</footer>
-
+<footer>Data Structure Lab Project — Designed with Total Domain Mastery.</footer>
 </body>
 </html>
