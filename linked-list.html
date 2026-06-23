@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Singly Linked List — DSA Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .stage { position: relative; min-height: 250px; background: var(--porcelain); border: 1px dashed var(--line); border-radius: 8px; margin-top: 20px; display: flex; align-items: center; padding: 20px; overflow-x: auto; }
+  .list-container { display: flex; align-items: center; gap: 40px; position: relative; z-index: 2; }
+  .ll-node { display: flex; align-items: center; background: var(--paper); border: 2px solid var(--sage-deep); border-radius: 6px; box-shadow: var(--shadow); transition: transform 0.3s ease; animation: popIn 0.3s ease; }
+  .ll-node.highlight { transform: scale(1.1); border-color: var(--gold); }
+  .ll-data { padding: 12px 18px; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: bold; color: var(--ink); }
+  .ll-ptr { width: 24px; background: var(--sage-pale); border-left: 2px solid var(--sage-deep); display: flex; align-items: center; justify-content: center; align-self: stretch; }
+  .ll-ptr::after { content: ''; width: 6px; height: 6px; background: var(--sage-deep); border-radius: 50%; }
+  
+  svg.edges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+  path.arrow { fill: none; stroke: var(--sage-deep); stroke-width: 2.5; marker-end: url(#arrowhead); transition: all 0.3s ease; }
+  
+  .caption { margin-top: 18px; background: var(--sage-pale); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sage-deep); text-align: center; min-height: 20px; }
+  .null-box { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--ink-soft); padding: 10px; border: 2px dashed var(--line); border-radius: 6px; animation: popIn 0.3s ease; }
+  @keyframes popIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Linked Structures</div>
+  <h1>Singly Linked List</h1>
+  <p>Nodes scattered in memory, connected by physical pointer addresses.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="stage" id="stage">
+      <svg class="edges" id="edgesSvg">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="var(--sage-deep)" />
+          </marker>
+        </defs>
+      </svg>
+      <div class="list-container" id="listContainer"></div>
+    </div>
+    
+    <div class="caption" id="caption">List is empty. Insert a value to begin.</div>
+    
+    <div class="controls">
+      <input type="number" id="valInput" placeholder="Value" style="width: 100px;" />
+      <button class="btn-primary" onclick="insertTail()">Insert Tail</button>
+      <button class="btn-primary" onclick="insertHead()">Insert Head</button>
+      <button class="btn-dark" onclick="deleteVal()">Delete Value</button>
+    </div>
+    
+    <div class="controls" style="margin-top: 10px;">
+      <label style="font-family:'JetBrains Mono', monospace; font-size:12px;">Speed:</label>
+      <input type="range" id="speedSlider" min="200" max="1500" value="600">
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="vars">Variables</div>
+      <div class="tab" data-tab="code">C Code</div>
+    </div>
+    <div class="tab-content active" id="vars">
+      <div class="ledger">
+        <div class="ledger-row"><span class="ledger-key">Head Pointer</span><span class="ledger-val" id="varHead">NULL</span></div>
+        <div class="ledger-row"><span class="ledger-key">Size</span><span class="ledger-val" id="varSize">0</span></div>
+      </div>
+    </div>
+    <div class="tab-content" id="code">
+      <pre class="code">
+struct Node {
+    int data;
+    struct Node* next;
+};
+
+void insertTail(struct Node** head, int val) {
+    struct Node* newNode = malloc(sizeof(struct Node));
+    newNode->data = val;
+    newNode->next = NULL;
+    
+    if (*head == NULL) {
+        *head = newNode;
+        return;
+    }
+    struct Node* temp = *head;
+    while (temp->next != NULL) temp = temp->next;
+    temp->next = newNode;
+}</pre>
+    </div>
+  </div>
+</main>
+
+<script>
+  let list = [];
+  let isRunning = false;
+  
+  function getDelay() { return parseInt(document.getElementById("speedSlider").max) - parseInt(document.getElementById("speedSlider").value) + 200; }
+  function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  function renderList() {
+    const cont = document.getElementById("listContainer");
+    const svg = document.getElementById("edgesSvg");
+    cont.innerHTML = "";
+    
+    // Keep defs
+    svg.innerHTML = `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#3D5848" /></marker></defs>`;
+    
+    if (list.length === 0) {
+      cont.innerHTML = '<div class="null-box">Head -> NULL</div>';
+      document.getElementById("varHead").textContent = "NULL";
+      document.getElementById("varSize").textContent = "0";
+      return;
+    }
+
+    document.getElementById("varHead").textContent = `Node[${list[0]}]`;
+    document.getElementById("varSize").textContent = list.length;
+
+    list.forEach((val, idx) => {
+      let node = document.createElement("div");
+      node.className = "ll-node";
+      node.id = `node-${idx}`;
+      node.innerHTML = `<div class="ll-data">${val}</div><div class="ll-ptr" id="ptr-${idx}"></div>`;
+      cont.appendChild(node);
+    });
+
+    let nullBox = document.createElement("div");
+    nullBox.className = "null-box";
+    nullBox.id = "null-node";
+    nullBox.textContent = "NULL";
+    cont.appendChild(nullBox);
+
+    setTimeout(drawLines, 50);
+  }
+
+  function drawLines() {
+    const svg = document.getElementById("edgesSvg");
+    const stageRect = document.getElementById("stage").getBoundingClientRect();
+    
+    for (let i = 0; i < list.length; i++) {
+      let ptr = document.getElementById(`ptr-${i}`);
+      let target = (i === list.length - 1) ? document.getElementById("null-node") : document.getElementById(`node-${i+1}`);
+      
+      if(!ptr || !target) continue;
+
+      let pRect = ptr.getBoundingClientRect();
+      let tRect = target.getBoundingClientRect();
+
+      let startX = pRect.left + pRect.width / 2 - stageRect.left;
+      let startY = pRect.top + pRect.height / 2 - stageRect.top;
+      let endX = tRect.left - stageRect.left - 5;
+      let endY = tRect.top + tRect.height / 2 - stageRect.top;
+
+      let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("class", "arrow");
+      path.setAttribute("d", `M ${startX} ${startY} L ${endX} ${endY}`);
+      svg.appendChild(path);
+    }
+  }
+
+  async function insertTail() {
+    if (isRunning) return;
+    let val = document.getElementById("valInput").value.trim();
+    if (!val || isNaN(val)) { document.getElementById("caption").textContent = "Please enter a valid number."; return; }
+    
+    isRunning = true;
+    document.getElementById("caption").textContent = `Allocating new node with value ${val}...`;
+    await sleep(getDelay());
+    
+    list.push(Number(val));
+    renderList();
+    document.getElementById("caption").textContent = `Traversed to tail. Linked new node ${val} and set its next to NULL.`;
+    
+    document.getElementById("valInput").value = "";
+    isRunning = false;
+  }
+
+  async function insertHead() {
+    if (isRunning) return;
+    let val = document.getElementById("valInput").value.trim();
+    if (!val || isNaN(val)) { document.getElementById("caption").textContent = "Please enter a valid number."; return; }
+    
+    isRunning = true;
+    document.getElementById("caption").textContent = `Creating new node ${val}...`;
+    await sleep(getDelay());
+    
+    list.unshift(Number(val));
+    renderList();
+    document.getElementById("caption").textContent = `Pointed new node to current Head, and updated Head pointer.`;
+    
+    document.getElementById("valInput").value = "";
+    isRunning = false;
+  }
+
+  async function deleteVal() {
+    if (isRunning) return;
+    let val = document.getElementById("valInput").value.trim();
+    if (!val || isNaN(val)) { document.getElementById("caption").textContent = "Enter value to delete."; return; }
+    
+    isRunning = true;
+    let target = Number(val);
+    let idx = list.indexOf(target);
+    
+    if (idx === -1) {
+      document.getElementById("caption").textContent = `Value ${target} not found in the list.`;
+      isRunning = false;
+      return;
+    }
+
+    document.getElementById("caption").textContent = `Traversing list to find ${target}...`;
+    for(let i=0; i<=idx; i++) {
+      let n = document.getElementById(`node-${i}`);
+      n.classList.add("highlight");
+      await sleep(getDelay() * 0.8);
+      if(i !== idx) n.classList.remove("highlight");
+    }
+
+    document.getElementById("caption").textContent = `Found ${target}. Rerouting pointers and freeing memory...`;
+    await sleep(getDelay());
+    
+    list.splice(idx, 1);
+    renderList();
+    
+    document.getElementById("valInput").value = "";
+    document.getElementById("caption").textContent = `Successfully deleted ${target}.`;
+    isRunning = false;
+  }
+
+  window.addEventListener('resize', () => { if(!isRunning) renderList(); });
+  
+  // Tabs logic
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(tab.dataset.tab).classList.add("active");
+    });
+  });
+
+  renderList();
+</script>
+</body>
+</html>
