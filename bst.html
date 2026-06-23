@@ -7,15 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <style>
-  .tree-stage { position: relative; height: 380px; background: var(--porcelain); border: 1px dashed var(--line); border-radius: 8px; margin-top: 20px; overflow: hidden; }
+  .tree-stage { width: 100%; min-height: 380px; background: var(--porcelain); border: 1px dashed var(--line); border-radius: 8px; margin-top: 20px; display: block; overflow: visible; }
   
-  .t-node { position: absolute; width: 40px; height: 40px; background: var(--sage); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 14px; z-index: 2; transition: all 0.4s ease; transform: translate(-50%, -50%); box-shadow: var(--shadow); }
-  .t-node.active { background: var(--gold); transform: translate(-50%, -50%) scale(1.2); }
-  .t-node.visiting { background: var(--gold); border: 2px solid var(--paper); transform: translate(-50%, -50%) scale(1.2); z-index: 3; }
-  .t-node.done { background: var(--sage-deep); }
+  .tree-node circle { fill: var(--sage); stroke: var(--sage-deep); stroke-width: 2; transition: all 0.3s ease; }
+  .tree-node circle.visiting { fill: var(--gold); stroke: var(--gold-soft); r: 22; }
+  .tree-node circle.done { fill: var(--sage-deep); }
+  .tree-node text { fill: #fff; font-family: 'JetBrains Mono', monospace; font-size: 13px; text-anchor: middle; dominant-baseline: central; font-weight: 500; pointer-events: none; }
   
-  svg.tree-edges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-  line.tree-line { stroke: var(--sage-deep); stroke-width: 2; transition: all 0.4s ease; }
+  .tree-edge { stroke: var(--sage-deep); stroke-width: 2; transition: all 0.3s ease; }
   
   .caption { margin-top: 18px; background: var(--sage-pale); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sage-deep); text-align: center; min-height: 20px; transition: opacity 0.2s ease; }
   
@@ -38,17 +37,14 @@
 <header class="page-head">
   <div class="eyebrow">Tree · Traversal</div>
   <h1>Binary Search Tree</h1>
-  <p>Left child is smaller, right child is greater. O(log n) search bounds.</p>
+  <p>Smaller values branch left, larger values branch right. O(log n) bounds.</p>
 </header>
 
 <main class="layout">
   <div class="panel">
     <h2>Visualizer</h2>
     
-    <div class="tree-stage" id="stage">
-      <svg class="tree-edges" id="edgesSvg"></svg>
-      <div id="nodesContainer"></div>
-    </div>
+    <svg class="tree-stage" id="svg" viewBox="0 0 600 350"></svg>
     
     <div class="caption" id="caption">Tree is empty. Insert a root node to begin.</div>
     
@@ -59,7 +55,7 @@
     </div>
 
     <div class="controls" style="margin-top: 14px;">
-      <label style="font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--ink-soft);">Animation Speed:</label>
+      <label style="font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--ink-soft);">Speed:</label>
       <input type="range" id="speedSlider" min="200" max="1500" value="600" style="transform: scaleY(0.9);">
     </div>
 
@@ -83,7 +79,7 @@
     
     <div class="tab-content active" id="vars">
       <div class="ledger">
-        <div class="ledger-row"><span class="ledger-key">Root Value</span><span class="ledger-val" id="varRoot">NULL</span></div>
+        <div class="ledger-row"><span class="ledger-key">Root Node</span><span class="ledger-val" id="varRoot">NULL</span></div>
         <div class="ledger-row"><span class="ledger-key">Total Nodes</span><span class="ledger-val" id="varSize">0</span></div>
       </div>
     </div>
@@ -107,6 +103,325 @@
 <footer>Binary Search Tree — part of the DSA Visualizer collection.</footer>
 
 <script>
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  class TreeNode {
+    constructor(val, id) {
+      this.val = val;
+      this.id = id;
+      this.left = null;
+      this.right = null;
+    }
+  }
+
+  let root = null;
+  let nodeCount = 0;
+  let idCounter = 0;
+  let isRunning = false;
+  let mode = 'in';
+  
+  const codeSets = {
+    insert: [
+      "struct Node {",
+      "    int data;",
+      "    struct Node *left, *right;",
+      "};",
+      "",
+      "struct Node* insert(struct Node* root, int val) {",
+      "    if (root == NULL) {",
+      "        struct Node* n = malloc(sizeof(struct Node));",
+      "        n->data = val;",
+      "        n->left = n->right = NULL;",
+      "        return n;",
+      "    }",
+      "    if (val < root->data)",
+      "        root->left = insert(root->left, val);",
+      "    else if (val > root->data)",
+      "        root->right = insert(root->right, val);",
+      "    return root;",
+      "}"
+    ],
+    in: [
+      "void inorder(struct Node* root) {",
+      "    if (root == NULL) return;",
+      "    inorder(root->left);",
+      "    printf(\"%d \", root->data);",
+      "    inorder(root->right);",
+      "}"
+    ],
+    pre: [
+      "void preorder(struct Node* root) {",
+      "    if (root == NULL) return;",
+      "    printf(\"%d \", root->data);",
+      "    preorder(root->left);",
+      "    preorder(root->right);",
+      "}"
+    ],
+    post: [
+      "void postorder(struct Node* root) {",
+      "    if (root == NULL) return;",
+      "    postorder(root->left);",
+      "    postorder(root->right);",
+      "    printf(\"%d \", root->data);",
+      "}"
+    ]
+  };
+
+  function renderCodeSet(key) {
+    document.getElementById('codeBlock').innerHTML = codeSets[key].map(l => `<span class="code-line">${l||'&nbsp;'}</span>`).join('\n');
+  }
+  renderCodeSet('insert');
+
+  function getDelay() { 
+    return parseInt(document.getElementById("speedSlider").max) - parseInt(document.getElementById("speedSlider").value) + 200; 
+  }
+  function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  function layout(node, depth, xMin, xMax, positions) {
+    if (!node) return;
+    const x = (xMin + xMax) / 2;
+    const y = 40 + depth * 70;
+    positions[node.id] = { x, y, node };
+    layout(node.left, depth + 1, xMin, x, positions);
+    layout(node.right, depth + 1, x, xMax, positions);
+  }
+
+  // Refactored to use robust createElementNS (fixing string injection bugs)
+  function drawTree() {
+    const svg = document.getElementById('svg');
+    while (svg.firstChild) { svg.removeChild(svg.firstChild); } // Clear safely
+    
+    if (!root) {
+      document.getElementById("varRoot").textContent = "NULL";
+      document.getElementById("varSize").textContent = "0";
+      return;
+    }
+
+    const positions = {};
+    layout(root, 0, 20, 580, positions);
+
+    // Draw Edges first so they sit behind nodes
+    function drawEdges(node) {
+      if (!node) return;
+      const p = positions[node.id];
+      if (node.left) {
+        const c = positions[node.left.id];
+        let line = document.createElementNS(svgNS, "line");
+        line.setAttribute("class", "tree-edge");
+        line.setAttribute("x1", p.x); line.setAttribute("y1", p.y);
+        line.setAttribute("x2", c.x); line.setAttribute("y2", c.y);
+        svg.appendChild(line);
+        drawEdges(node.left);
+      }
+      if (node.right) {
+        const c = positions[node.right.id];
+        let line = document.createElementNS(svgNS, "line");
+        line.setAttribute("class", "tree-edge");
+        line.setAttribute("x1", p.x); line.setAttribute("y1", p.y);
+        line.setAttribute("x2", c.x); line.setAttribute("y2", c.y);
+        svg.appendChild(line);
+        drawEdges(node.right);
+      }
+    }
+    drawEdges(root);
+
+    // Draw Nodes
+    Object.values(positions).forEach(({ x, y, node }) => {
+      let g = document.createElementNS(svgNS, "g");
+      g.setAttribute("class", "tree-node");
+      g.setAttribute("id", `node-${node.id}`);
+
+      let circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("cx", x);
+      circle.setAttribute("cy", y);
+      circle.setAttribute("r", "18");
+
+      let text = document.createElementNS(svgNS, "text");
+      text.setAttribute("x", x);
+      text.setAttribute("y", y);
+      text.textContent = node.val;
+
+      g.appendChild(circle);
+      g.appendChild(text);
+      svg.appendChild(g);
+    });
+
+    document.getElementById("varRoot").textContent = root.val;
+    document.getElementById("varSize").textContent = nodeCount;
+  }
+
+  async function startInsert() {
+    if (isRunning) return;
+    renderCodeSet('insert');
+    
+    const input = document.getElementById('valInput');
+    const val = input.value.trim();
+    
+    if (val === '' || isNaN(Number(val))) { 
+      document.getElementById("caption").textContent = "Please enter a valid numeric value."; 
+      return; 
+    }
+    
+    let num = Number(val);
+    isRunning = true;
+    input.value = "";
+    document.getElementById("outStrip").innerHTML = '';
+    
+    document.querySelectorAll('.tree-node circle').forEach(c => c.classList.remove('visiting', 'done'));
+
+    if (!root) {
+      root = new TreeNode(num, idCounter++);
+      nodeCount++;
+      document.getElementById("caption").textContent = `Tree was empty. Initializing root node ${num}.`;
+      drawTree();
+      isRunning = false;
+      return;
+    }
+
+    let curr = root;
+    while (curr) {
+      let circle = document.querySelector(`#node-${curr.id} circle`);
+      if(circle) circle.classList.add("visiting");
+      
+      if (num < curr.val) {
+        document.getElementById("caption").textContent = `${num} < ${curr.val}. Traversing to the left child.`;
+        await sleep(getDelay());
+        if(circle) circle.classList.remove("visiting");
+        
+        if (!curr.left) {
+          curr.left = new TreeNode(num, idCounter++);
+          nodeCount++;
+          document.getElementById("caption").textContent = `Left child is null. Inserting ${num} here.`;
+          break;
+        }
+        curr = curr.left;
+      } else if (num > curr.val) {
+        document.getElementById("caption").textContent = `${num} > ${curr.val}. Traversing to the right child.`;
+        await sleep(getDelay());
+        if(circle) circle.classList.remove("visiting");
+        
+        if (!curr.right) {
+          curr.right = new TreeNode(num, idCounter++);
+          nodeCount++;
+          document.getElementById("caption").textContent = `Right child is null. Inserting ${num} here.`;
+          break;
+        }
+        curr = curr.right;
+      } else {
+        document.getElementById("caption").textContent = `Value ${num} already exists in the BST! Duplicates ignored.`;
+        if(circle) circle.classList.remove("visiting");
+        isRunning = false;
+        return;
+      }
+    }
+    
+    drawTree();
+    isRunning = false;
+  }
+
+  function resetTree() {
+    if (isRunning) return;
+    root = null;
+    nodeCount = 0;
+    idCounter = 0;
+    document.getElementById("outStrip").innerHTML = "";
+    document.getElementById("caption").textContent = "Tree completely cleared.";
+    drawTree();
+  }
+
+  // Handle Traversal Tabs
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      if (isRunning) return;
+      document.querySelectorAll('.mode-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      mode = t.dataset.mode;
+      renderCodeSet(mode);
+      
+      const modeName = mode === 'in' ? 'Inorder' : mode === 'pre' ? 'Preorder' : 'Postorder';
+      document.getElementById("caption").textContent = `${modeName} mode selected. Click Run Traversal to begin.`;
+    });
+  });
+
+  function collectOrder(node, m, out) {
+    if (!node) return;
+    if (m === 'pre') out.push(node);
+    collectOrder(node.left, m, out);
+    if (m === 'in') out.push(node);
+    collectOrder(node.right, m, out);
+    if (m === 'post') out.push(node);
+  }
+
+  async function runTraversal() {
+    if (!root || isRunning) return;
+    isRunning = true;
+    
+    document.getElementById('outStrip').innerHTML = '';
+    document.querySelectorAll('.tree-node circle').forEach(c => c.classList.remove('visiting', 'done'));
+    
+    const order = [];
+    collectOrder(root, mode, order);
+    
+    const modeName = mode === 'in' ? 'Inorder' : mode === 'pre' ? 'Preorder' : 'Postorder';
+    document.getElementById("caption").textContent = `Running ${modeName} Traversal...`;
+
+    for (const node of order) {
+      const circle = document.querySelector(`#node-${node.id} circle`);
+      if(circle) circle.classList.add('visiting');
+      
+      document.getElementById("caption").textContent = `Visiting Node ${node.val}...`;
+      await sleep(getDelay());
+      
+      if(circle) {
+        circle.classList.remove('visiting');
+        circle.classList.add('done');
+      }
+      
+      const slot = document.createElement('div');
+      slot.className = 'out-slot';
+      slot.textContent = node.val;
+      document.getElementById('outStrip').appendChild(slot);
+    }
+    
+    document.getElementById("caption").textContent = `${modeName} Traversal complete! Output generated.`;
+    isRunning = false;
+  }
+
+  // Handle Bottom Tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Pre-load a small tree for immediate demonstration
+  function initDemo() {
+    [35, 20, 50, 10, 28].forEach(v => {
+      if(!root) { root = new TreeNode(v, idCounter++); nodeCount++; }
+      else {
+        let curr = root;
+        while(true) {
+          if(v < curr.val) {
+            if(!curr.left) { curr.left = new TreeNode(v, idCounter++); nodeCount++; break; }
+            curr = curr.left;
+          } else {
+            if(!curr.right) { curr.right = new TreeNode(v, idCounter++); nodeCount++; break; }
+            curr = curr.right;
+          }
+        }
+      }
+    });
+    drawTree();
+  }
+  
+  initDemo();
+
+</script>
+</body>
+</html>
   class TreeNode {
     constructor(val, id) {
       this.val = val; this.id = id;
