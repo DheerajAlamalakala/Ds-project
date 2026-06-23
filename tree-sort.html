@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tree Sort — DSA Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .vis-container { display: flex; flex-direction: column; gap: 15px; }
+  .array-strip { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: center; background: var(--paper); padding: 12px; border: 1px solid var(--line); border-radius: 8px; min-height: 50px; }
+  .array-box { width: 38px; height: 38px; border-radius: 6px; background: var(--porcelain); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: bold; color: var(--ink); transition: all 0.3s ease; }
+  .array-box.active { background: var(--gold); border-color: var(--gold); color: white; transform: scale(1.1); }
+  .array-box.sorted { background: var(--sage-deep); border-color: var(--sage-deep); color: white; }
+  
+  .tree-stage { position: relative; height: 280px; background: var(--porcelain); border: 1px dashed var(--line); border-radius: 8px; overflow: hidden; }
+  .t-node { position: absolute; width: 36px; height: 36px; background: var(--sage); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 13px; z-index: 2; transition: all 0.4s ease; transform: translate(-50%, -50%); box-shadow: var(--shadow); }
+  .t-node.visiting { background: var(--gold); transform: translate(-50%, -50%) scale(1.2); }
+  
+  svg.tree-edges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+  line.tree-line { stroke: var(--sage-deep); stroke-width: 2; transition: all 0.4s ease; }
+  
+  .caption { margin-top: 10px; background: var(--sage-pale); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sage-deep); text-align: center; }
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Sorting Algorithm</div>
+  <h1>Tree Sort</h1>
+  <p>Builds a Binary Search Tree from an array, then extracts the values in sorted order using an Inorder traversal.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="vis-container">
+      <div style="font-size: 12px; color: var(--ink-soft); font-family: monospace; text-align:center;">INPUT ARRAY</div>
+      <div class="array-strip" id="inputArr"></div>
+      
+      <div class="tree-stage" id="stage">
+        <svg class="tree-edges" id="edgesSvg"></svg>
+        <div id="nodesContainer"></div>
+      </div>
+      
+      <div style="font-size: 12px; color: var(--ink-soft); font-family: monospace; text-align:center;">SORTED OUTPUT</div>
+      <div class="array-strip" id="outputArr"></div>
+    </div>
+    
+    <div class="caption" id="caption">Ready to sort. Click Start Sorting.</div>
+    
+    <div class="controls">
+      <button class="btn-primary" id="sortBtn" onclick="startTreeSort()">Start Sorting</button>
+      <button class="btn-ghost" id="randBtn" onclick="randomize()">Randomize Array</button>
+    </div>
+
+    <div class="controls" style="margin-top: 10px;">
+      <label style="font-family:'JetBrains Mono', monospace; font-size:12px;">Speed:</label>
+      <input type="range" id="speedSlider" min="200" max="1500" value="600">
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="vars">Variables</div>
+      <div class="tab" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+    </div>
+    <div class="tab-content active" id="vars">
+      <div class="ledger">
+        <div class="ledger-row"><span class="ledger-key">Phase</span><span class="ledger-val" id="varPhase">Idle</span></div>
+        <div class="ledger-row"><span class="ledger-key">BST Nodes</span><span class="ledger-val" id="varSize">0</span></div>
+      </div>
+    </div>
+    <div class="tab-content" id="code">
+      <pre class="code">
+void storeSorted(struct Node* root, int arr[], int* i) {
+    if (root != NULL) {
+        storeSorted(root->left, arr, i);
+        arr[(*i)++] = root->key;
+        storeSorted(root->right, arr, i);
+    }
+}
+
+void treeSort(int arr[], int n) {
+    struct Node* root = NULL;
+    root = insert(root, arr[0]);
+    for (int i = 1; i < n; i++)
+        insert(root, arr[i]);
+        
+    int i = 0;
+    storeSorted(root, arr, &i);
+}</pre>
+    </div>
+    <div class="tab-content" id="complexity">
+      <table>
+        <tr><th>Case</th><th>Time</th><th>Space</th></tr>
+        <tr><td>Average</td><td>O(n log n)</td><td>O(n)</td></tr>
+        <tr><td>Worst</td><td>O(n²)</td><td>O(n)</td></tr>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  let rawArr = [35, 12, 45, 10, 25, 50, 8];
+  let root = null;
+  let isRunning = false;
+  
+  function getDelay() { return parseInt(document.getElementById("speedSlider").max) - parseInt(document.getElementById("speedSlider").value) + 200; }
+  function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  function renderArrays() {
+    const inCont = document.getElementById("inputArr");
+    const outCont = document.getElementById("outputArr");
+    inCont.innerHTML = ""; outCont.innerHTML = "";
+    
+    rawArr.forEach((v, i) => {
+      let b = document.createElement("div");
+      b.className = "array-box"; b.id = `in-${i}`; b.textContent = v;
+      inCont.appendChild(b);
+      
+      let o = document.createElement("div");
+      o.className = "array-box"; o.id = `out-${i}`; o.style.visibility = "hidden";
+      outCont.appendChild(o);
+    });
+  }
+
+  function randomize() {
+    if (isRunning) return;
+    rawArr = Array.from({length: 7}, () => Math.floor(Math.random() * 90) + 10);
+    root = null;
+    document.getElementById("nodesContainer").innerHTML = "";
+    document.getElementById("edgesSvg").innerHTML = "";
+    document.getElementById("varSize").textContent = "0";
+    document.getElementById("caption").textContent = "Randomized array. Ready to sort.";
+    renderArrays();
+  }
+
+  class TreeNode { constructor(val, id) { this.val = val; this.id = id; this.left = null; this.right = null; } }
+
+  function calculatePositions(node, x, y, offset) {
+    if (!node) return;
+    node.x = x; node.y = y;
+    calculatePositions(node.left, x - offset, y + 50, offset / 1.6);
+    calculatePositions(node.right, x + offset, y + 50, offset / 1.6);
+  }
+
+  function drawTree() {
+    const stageWidth = document.getElementById("stage").clientWidth;
+    if (root) calculatePositions(root, stageWidth / 2, 30, stageWidth / 4);
+
+    const svg = document.getElementById("edgesSvg");
+    const container = document.getElementById("nodesContainer");
+    svg.innerHTML = "";
+    
+    const renderNode = (node) => {
+      let el = document.getElementById(`t-node-${node.id}`);
+      if (!el) {
+        el = document.createElement("div");
+        el.className = "t-node"; el.id = `t-node-${node.id}`; el.textContent = node.val;
+        container.appendChild(el);
+      }
+      el.style.left = `${node.x}px`; el.style.top = `${node.y}px`;
+
+      if (node.left) {
+        let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("class", "tree-line");
+        line.setAttribute("x1", node.x); line.setAttribute("y1", node.y);
+        line.setAttribute("x2", node.left.x); line.setAttribute("y2", node.left.y);
+        svg.appendChild(line); renderNode(node.left);
+      }
+      if (node.right) {
+        let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("class", "tree-line");
+        line.setAttribute("x1", node.x); line.setAttribute("y1", node.y);
+        line.setAttribute("x2", node.right.x); line.setAttribute("y2", node.right.y);
+        svg.appendChild(line); renderNode(node.right);
+      }
+    };
+    if (root) renderNode(root);
+  }
+
+  async function startTreeSort() {
+    if (isRunning) return;
+    isRunning = true;
+    document.getElementById("sortBtn").disabled = true;
+    document.getElementById("randBtn").disabled = true;
+    
+    root = null;
+    document.getElementById("nodesContainer").innerHTML = "";
+    document.getElementById("edgesSvg").innerHTML = "";
+    let nodeCount = 0;
+    
+    document.getElementById("varPhase").textContent = "Building BST";
+
+    // Phase 1: Build BST
+    for (let i = 0; i < rawArr.length; i++) {
+      let val = rawArr[i];
+      let inBox = document.getElementById(`in-${i}`);
+      inBox.classList.add("active");
+      document.getElementById("caption").textContent = `Inserting ${val} into the BST...`;
+      
+      if (!root) {
+        root = new TreeNode(val, nodeCount++);
+      } else {
+        let curr = root;
+        while (true) {
+          if (val <= curr.val) {
+            if (!curr.left) { curr.left = new TreeNode(val, nodeCount++); break; }
+            curr = curr.left;
+          } else {
+            if (!curr.right) { curr.right = new TreeNode(val, nodeCount++); break; }
+            curr = curr.right;
+          }
+        }
+      }
+      
+      document.getElementById("varSize").textContent = nodeCount;
+      drawTree();
+      await sleep(getDelay());
+      inBox.classList.remove("active");
+    }
+
+    // Phase 2: Inorder Traversal
+    document.getElementById("varPhase").textContent = "Inorder Extraction";
+    document.getElementById("caption").textContent = "BST complete. Starting Inorder traversal to extract sorted values...";
+    await sleep(getDelay());
+
+    let outputIndex = 0;
+    async function inorder(node) {
+      if (!node) return;
+      await inorder(node.left);
+      
+      let tNode = document.getElementById(`t-node-${node.id}`);
+      tNode.classList.add("visiting");
+      document.getElementById("caption").textContent = `Extracted ${node.val}. Placing in output array.`;
+      
+      let outBox = document.getElementById(`out-${outputIndex}`);
+      outBox.textContent = node.val;
+      outBox.style.visibility = "visible";
+      outBox.classList.add("sorted");
+      outputIndex++;
+      
+      await sleep(getDelay());
+      tNode.classList.remove("visiting");
+      tNode.style.opacity = "0.5";
+      
+      await inorder(node.right);
+    }
+    
+    await inorder(root);
+    
+    document.getElementById("caption").textContent = "Tree Sort Complete!";
+    document.getElementById("varPhase").textContent = "Done";
+    isRunning = false;
+    document.getElementById("sortBtn").disabled = false;
+    document.getElementById("randBtn").disabled = false;
+  }
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(tab.dataset.tab).classList.add("active");
+    });
+  });
+
+  renderArrays();
+</script>
+</body>
+    </html>
+      
