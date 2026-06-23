@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expression Converter — DSA Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .vis-container { display: flex; flex-direction: column; gap: 20px; margin-top: 10px; }
+  .io-strip { display: flex; gap: 5px; flex-wrap: wrap; padding: 15px; background: var(--porcelain); border-radius: 8px; border: 1px solid var(--line); min-height: 60px; align-items: center; }
+  .char-box { width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 600; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; transition: all 0.2s ease; }
+  .char-box.active { background: var(--gold-soft); border-color: var(--gold); transform: scale(1.1); }
+  
+  .stack-area { display: flex; justify-content: center; height: 200px; }
+  .stack-tube { width: 100px; border: 2px solid var(--ink); border-top: none; border-radius: 0 0 8px 8px; display: flex; flex-direction: column-reverse; padding: 4px; gap: 4px; overflow: hidden; }
+  .stack-item { background: var(--sage); color: white; padding: 8px; text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: bold; border-radius: 4px; animation: dropIn 0.2s ease; }
+  
+  .caption { margin-top: 18px; background: var(--sage-pale); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sage-deep); text-align: center; }
+  .speed-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-soft); }
+  @keyframes dropIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+<header class="page-head">
+  <div class="eyebrow">Parsing Engine</div>
+  <h1>Infix to Postfix</h1>
+  <p>Converts human-readable math expressions into machine-readable postfix format using a Stack.</p>
+</header>
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="vis-container">
+      <div>
+        <div style="font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; font-family: monospace;">INPUT STRING</div>
+        <div class="io-strip" id="inputStrip"></div>
+      </div>
+      
+      <div class="stack-area">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <div style="font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; font-family: monospace;">OPERATOR STACK</div>
+          <div class="stack-tube" id="opStack"></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; font-family: monospace;">POSTFIX OUTPUT</div>
+        <div class="io-strip" id="outputStrip"></div>
+      </div>
+    </div>
+
+    <div class="caption" id="caption">Enter a valid infix expression (e.g., A+B*C) to begin.</div>
+    
+    <div class="controls">
+      <input type="text" id="exprInput" placeholder="A+B*C" style="width: 200px; text-transform: uppercase;">
+      <button class="btn-primary" id="startBtn" onclick="startConversion()">Convert</button>
+      <button class="btn-ghost" onclick="resetUI()">Reset</button>
+    </div>
+    
+    <div class="speed-row">
+      <label>Animation Speed:</label>
+      <input type="range" id="speedSlider" min="100" max="1500" value="600" style="transform: scaleY(0.9);">
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="vars">Variables</div>
+      <div class="tab" data-tab="code">C Code</div>
+    </div>
+    <div class="tab-content active" id="vars">
+      <div class="ledger">
+        <div class="ledger-row"><span class="ledger-key">Scanned Char</span><span class="ledger-val" id="varChar">-</span></div>
+        <div class="ledger-row"><span class="ledger-key">Top of Stack</span><span class="ledger-val" id="varTop">Empty</span></div>
+      </div>
+    </div>
+    <div class="tab-content" id="code">
+      <pre class="code">
+void infixToPostfix(char* exp) {
+    for(int i=0; exp[i]; i++) {
+        if(isalnum(exp[i])) 
+            printf("%c", exp[i]);
+        else if(exp[i] == '(') 
+            push(exp[i]);
+        else if(exp[i] == ')') {
+            while(peek() != '(') printf("%c", pop());
+            pop();
+        } else {
+            while(prec(exp[i]) <= prec(peek())) 
+                printf("%c", pop());
+            push(exp[i]);
+        }
+    }
+    while(top != -1) printf("%c", pop());
+}</pre>
+    </div>
+  </div>
+</main>
+
+<script>
+  let isRunning = false;
+  
+  function getPrecedence(ch) {
+    if (ch === '^') return 3;
+    if (ch === '*' || ch === '/') return 2;
+    if (ch === '+' || ch === '-') return 1;
+    return -1;
+  }
+  
+  function isOperand(ch) {
+    return /^[a-zA-Z0-9]+$/.test(ch);
+  }
+
+  function getDelay() {
+    return parseInt(document.getElementById("speedSlider").max) - parseInt(document.getElementById("speedSlider").value) + 200;
+  }
+  function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  function resetUI() {
+    document.getElementById("inputStrip").innerHTML = "";
+    document.getElementById("outputStrip").innerHTML = "";
+    document.getElementById("opStack").innerHTML = "";
+    document.getElementById("caption").textContent = "UI Reset. Ready for new input.";
+    document.getElementById("varChar").textContent = "-";
+    document.getElementById("varTop").textContent = "Empty";
+    isRunning = false;
+  }
+
+  async function startConversion() {
+    if (isRunning) return;
+    
+    // Strict Input Bug Fix: Remove spaces and ensure validity
+    let rawExpr = document.getElementById("exprInput").value.trim().toUpperCase().replace(/\s+/g, '');
+    if (!rawExpr) rawExpr = "A+B*C";
+    
+    resetUI();
+    isRunning = true;
+    document.getElementById("exprInput").value = rawExpr;
+    
+    const inStrip = document.getElementById("inputStrip");
+    rawExpr.split('').forEach((ch, idx) => {
+      let b = document.createElement("div");
+      b.className = "char-box";
+      b.id = `in-${idx}`;
+      b.textContent = ch;
+      inStrip.appendChild(b);
+    });
+
+    let stack = [];
+    const outStrip = document.getElementById("outputStrip");
+    const stackTube = document.getElementById("opStack");
+
+    function renderStack() {
+      stackTube.innerHTML = "";
+      stack.forEach(op => {
+        let el = document.createElement("div");
+        el.className = "stack-item"; el.textContent = op;
+        stackTube.appendChild(el);
+      });
+      document.getElementById("varTop").textContent = stack.length > 0 ? stack[stack.length - 1] : "Empty";
+    }
+
+    function pushOutput(ch) {
+      let el = document.createElement("div");
+      el.className = "char-box"; el.textContent = ch;
+      outStrip.appendChild(el);
+    }
+
+    for (let i = 0; i < rawExpr.length; i++) {
+      if (!isRunning) return;
+      let ch = rawExpr[i];
+      document.getElementById(`in-${i}`).classList.add("active");
+      document.getElementById("varChar").textContent = ch;
+
+      if (isOperand(ch)) {
+        document.getElementById("caption").textContent = `'${ch}' is an operand. Sending directly to output.`;
+        await sleep(getDelay());
+        pushOutput(ch);
+      } else if (ch === '(') {
+        document.getElementById("caption").textContent = `'${ch}' is an open parenthesis. Pushing to stack.`;
+        await sleep(getDelay());
+        stack.push(ch);
+        renderStack();
+      } else if (ch === ')') {
+        document.getElementById("caption").textContent = `Closing parenthesis found. Popping stack until '(' is reached.`;
+        await sleep(getDelay());
+        while (stack.length > 0 && stack[stack.length - 1] !== '(') {
+          pushOutput(stack.pop());
+          renderStack();
+          await sleep(getDelay() / 2);
+        }
+        stack.pop(); // discard '('
+        renderStack();
+      } else {
+        document.getElementById("caption").textContent = `'${ch}' is an operator. Checking precedence against stack top.`;
+        await sleep(getDelay());
+        while (stack.length > 0 && getPrecedence(ch) <= getPrecedence(stack[stack.length - 1])) {
+          let poppedOp = stack.pop();
+          document.getElementById("caption").textContent = `'${poppedOp}' has higher/equal precedence than '${ch}'. Popping to output.`;
+          pushOutput(poppedOp);
+          renderStack();
+          await sleep(getDelay());
+        }
+        document.getElementById("caption").textContent = `Pushing '${ch}' to the stack.`;
+        stack.push(ch);
+        renderStack();
+      }
+      document.getElementById(`in-${i}`).classList.remove("active");
+      await sleep(getDelay() / 2);
+    }
+
+    document.getElementById("caption").textContent = `Input scanned. Popping remaining operators from stack.`;
+    await sleep(getDelay());
+    while (stack.length > 0) {
+      pushOutput(stack.pop());
+      renderStack();
+      await sleep(getDelay() / 2);
+    }
+
+    document.getElementById("caption").textContent = "Conversion Complete!";
+    document.getElementById("varChar").textContent = "-";
+    isRunning = false;
+  }
+</script>
+</body>
+</html>
