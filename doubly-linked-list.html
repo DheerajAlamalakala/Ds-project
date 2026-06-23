@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doubly Linked List — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .ll-stage { position: relative; width: 100%; height: 260px; border: 1px dashed var(--line); border-radius: 10px; overflow: hidden; touch-action: none; background: repeating-linear-gradient(0deg, transparent, transparent 21px, var(--line) 21px, transparent 22px); background-size: 100% 100%; }
+  .ll-stage svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .node-block { position: absolute; width: 90px; height: 48px; background: var(--paper); border: 2px solid var(--sage); border-radius: 6px; display: flex; align-items: center; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-weight: bold; color: var(--ink); box-shadow: var(--shadow); transition: transform 0.2s ease, border-color 0.2s ease; z-index: 2; }
+  .node-block.highlight { transform: scale(1.1); border-color: var(--gold); background: var(--gold-soft); }
+  .node-val { flex: 1; text-align: center; }
+  .ptr-box { width: 20px; height: 100%; background: var(--sage-pale); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--sage-deep); }
+  .ptr-box.prev { border-right: 1px solid var(--sage); border-radius: 4px 0 0 4px; }
+  .ptr-box.next { border-left: 1px solid var(--sage); border-radius: 0 4px 4px 0; }
+  
+  .null-box { position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--ink-soft); padding: 10px; border: 2px dashed var(--line); border-radius: 6px; z-index: 1; }
+  .arrow-next { stroke: var(--sage-deep); stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+  .arrow-prev { stroke: var(--gold); stroke-width: 2; fill: none; marker-end: url(#arrowhead-gold); }
+  
+  .caption { margin-top: 18px; background: var(--sage-pale); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sage-deep); text-align: center; min-height: 20px; transition: opacity 0.2s ease; }
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Linked Structures</div>
+  <h1>Doubly Linked List</h1>
+  <p>Nodes store references to both their next and previous neighbors.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="ll-stage" id="stage">
+      <svg id="svgEdges">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="var(--sage-deep)" /></marker>
+          <marker id="arrowhead-gold" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="var(--gold)" /></marker>
+        </defs>
+      </svg>
+      <div id="nodesContainer"></div>
+    </div>
+    
+    <div class="caption" id="caption">List is empty. Insert a value to begin.</div>
+    
+    <div class="controls">
+      <input type="number" id="valInput" placeholder="Value" style="width: 100px;" />
+      <button class="btn-primary" onclick="insertTail()">Insert Tail</button>
+      <button class="btn-primary" onclick="insertHead()">Insert Head</button>
+      <button class="btn-dark" onclick="deleteTail()">Delete Tail</button>
+      <button class="btn-ghost" onclick="resetList()">Reset</button>
+    </div>
+
+    <div class="controls" style="margin-top: 10px;">
+      <label style="font-family:'JetBrains Mono', monospace; font-size:12px;">Animation Speed:</label>
+      <input type="range" id="speedSlider" min="200" max="1500" value="600">
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="vars">Variables</div>
+      <div class="tab" data-tab="code">C Code</div>
+    </div>
+    <div class="tab-content active" id="vars">
+      <div class="ledger">
+        <div class="ledger-row"><span class="ledger-key">Head Node</span><span class="ledger-val" id="varHead">NULL</span></div>
+        <div class="ledger-row"><span class="ledger-key">Tail Node</span><span class="ledger-val" id="varTail">NULL</span></div>
+        <div class="ledger-row"><span class="ledger-key">Size</span><span class="ledger-val" id="varSize">0</span></div>
+      </div>
+    </div>
+    <div class="tab-content" id="code">
+      <pre class="code">
+struct Node {
+    int data;
+    struct Node* prev;
+    struct Node* next;
+};
+
+void insertTail(struct Node** head, int val) {
+    struct Node* newNode = malloc(sizeof(struct Node));
+    newNode->data = val;
+    newNode->next = NULL;
+    
+    if (*head == NULL) {
+        newNode->prev = NULL;
+        *head = newNode;
+        return;
+    }
+    
+    struct Node* temp = *head;
+    while (temp->next != NULL) temp = temp->next;
+    
+    temp->next = newNode;
+    newNode->prev = temp;
+}</pre>
+    </div>
+  </div>
+</main>
+
+<script>
+  let nodes = [];
+  let isRunning = false;
+  
+  function getDelay() { return parseInt(document.getElementById("speedSlider").max) - parseInt(document.getElementById("speedSlider").value) + 200; }
+  function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  function renderList() {
+    const container = document.getElementById("nodesContainer");
+    const svg = document.getElementById("svgEdges");
+    container.innerHTML = "";
+    
+    // Keep markers intact
+    svg.innerHTML = `
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#3D5848" /></marker>
+        <marker id="arrowhead-gold" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#B08D4F" /></marker>
+      </defs>`;
+    
+    document.getElementById("varSize").textContent = nodes.length;
+    if (nodes.length === 0) {
+      document.getElementById("varHead").textContent = "NULL";
+      document.getElementById("varTail").textContent = "NULL";
+      return;
+    }
+    
+    document.getElementById("varHead").textContent = `Node[${nodes[0]}]`;
+    document.getElementById("varTail").textContent = `Node[${nodes[nodes.length - 1]}]`;
+
+    // Calculate layout
+    const startX = 60;
+    const spacing = 130;
+    const y = 100;
+
+    // Draw Head NULL
+    let nullHead = document.createElement("div");
+    nullHead.className = "null-box";
+    nullHead.textContent = "NULL";
+    nullHead.style.left = "10px";
+    nullHead.style.top = `${y}px`;
+    container.appendChild(nullHead);
+
+    nodes.forEach((val, i) => {
+      let x = startX + (i * spacing);
+      let el = document.createElement("div");
+      el.className = "node-block";
+      el.id = `node-${i}`;
+      el.style.left = `${x}px`;
+      el.style.top = `${y - 12}px`;
+      el.innerHTML = `
+        <div class="ptr-box prev">P</div>
+        <div class="node-val">${val}</div>
+        <div class="ptr-box next">N</div>
+      `;
+      container.appendChild(el);
+    });
+
+    // Draw Tail NULL
+    let nullTail = document.createElement("div");
+    nullTail.className = "null-box";
+    nullTail.textContent = "NULL";
+    nullTail.style.left = `${startX + (nodes.length * spacing) + 10}px`;
+    nullTail.style.top = `${y}px`;
+    container.appendChild(nullTail);
+
+    // Draw Edges
+    setTimeout(() => {
+      for (let i = 0; i < nodes.length; i++) {
+        let currX = startX + (i * spacing);
+        let nextX = currX + spacing;
+        
+        // Next Pointer (Top)
+        let nextLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        nextLine.setAttribute("class", "arrow-next");
+        nextLine.setAttribute("x1", currX + 90); nextLine.setAttribute("y1", y);
+        nextLine.setAttribute("x2", i === nodes.length - 1 ? nextX + 10 : nextX); nextLine.setAttribute("y2", y);
+        svg.appendChild(nextLine);
+
+        // Prev Pointer (Bottom)
+        let prevLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        prevLine.setAttribute("class", "arrow-prev");
+        prevLine.setAttribute("x1", currX); prevLine.setAttribute("y1", y + 20);
+        prevLine.setAttribute("x2", i === 0 ? 50 : currX - 40); prevLine.setAttribute("y2", y + 20);
+        svg.appendChild(prevLine);
+      }
+    }, 50);
+  }
+
+  async function insertTail() {
+    if (isRunning) return;
+    const val = document.getElementById("valInput").value.trim();
+    if (!val || isNaN(val)) return;
+    
+    isRunning = true;
+    document.getElementById("caption").textContent = `Creating new node [${val}]...`;
+    await sleep(getDelay());
+    
+    nodes.push(Number(val));
+    renderList();
+    
+    const newNode = document.getElementById(`node-${nodes.length - 1}`);
+    newNode.classList.add("highlight");
+    document.getElementById("caption").textContent = `Linked next to NULL, and prev to the old tail.`;
+    
+    await sleep(getDelay());
+    newNode.classList.remove("highlight");
+    document.getElementById("valInput").value = "";
+    isRunning = false;
+  }
+
+  async function insertHead() {
+    if (isRunning) return;
+    const val = document.getElementById("valInput").value.trim();
+    if (!val || isNaN(val)) return;
+    
+    isRunning = true;
+    document.getElementById("caption").textContent = `Creating new node [${val}] at Head...`;
+    await sleep(getDelay());
+    
+    nodes.unshift(Number(val));
+    renderList();
+    
+    const newNode = document.getElementById(`node-0`);
+    newNode.classList.add("highlight");
+    document.getElementById("caption").textContent = `Linked prev to NULL, and next to the old head.`;
+    
+    await sleep(getDelay());
+    newNode.classList.remove("highlight");
+    document.getElementById("valInput").value = "";
+    isRunning = false;
+  }
+
+  async function deleteTail() {
+    if (isRunning || nodes.length === 0) return;
+    isRunning = true;
+    
+    const target = nodes.length - 1;
+    const el = document.getElementById(`node-${target}`);
+    el.classList.add("highlight");
+    document.getElementById("caption").textContent = `Detaching tail node [${nodes[target]}]...`;
+    
+    await sleep(getDelay());
+    nodes.pop();
+    renderList();
+    document.getElementById("caption").textContent = `New tail's next pointer updated to NULL.`;
+    isRunning = false;
+  }
+
+  function resetList() {
+    if (isRunning) return;
+    nodes = [];
+    renderList();
+    document.getElementById("caption").textContent = "List cleared.";
+  }
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(tab.dataset.tab).classList.add("active");
+    });
+  });
+
+  renderList();
+</script>
+</body>
+</html>
