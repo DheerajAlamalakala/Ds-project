@@ -25,6 +25,12 @@
     width:10px;height:10px;background:var(--gold);border-radius:50%;border:2px solid var(--paper);
   }
   .node-block .label{position:absolute;top:-20px;font-size:10px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+  .node-block .order-badge{
+    position:absolute;top:-9px;left:-9px;width:20px;height:20px;border-radius:50%;
+    background:var(--paper);border:2px solid var(--gold);color:var(--ink);
+    font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+  }
   .null-tag{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:3px 7px;z-index:2;}
   .ll-edge{stroke:var(--gold);stroke-width:2;fill:none;marker-end:url(#arrowhead);}
   .caption{margin-top:18px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;}
@@ -58,13 +64,14 @@
         </marker>
       </defs></svg>
     </div>
-    <div class="hint">Drag any node to rearrange it — the pointer line redraws live.</div>
+    <div class="hint">Drag any node freely — the gold badge always shows its real position in the list, no matter where you drop it. Use Re-align to snap back into a row.</div>
     <div class="caption idle" id="caption">Insert a value to get started.</div>
     <div class="controls">
       <input type="number" id="valInput" placeholder="value" style="width:70px;" />
       <button class="btn-primary" onclick="insertHead()">Insert Head</button>
       <button class="btn-primary" onclick="insertTail()">Insert Tail</button>
       <button class="btn-dark" onclick="deleteVal()">Delete Value</button>
+      <button class="btn-ghost" onclick="realign()">Re-align</button>
       <button class="btn-ghost" onclick="resetList()">Reset</button>
     </div>
     <div class="counters">
@@ -136,6 +143,13 @@ void deleteValue(int val) {
           <strong>Insert at tail</strong> and <strong>delete</strong> both require walking the list one
           node at a time with a <code>cur</code> pointer until the right spot is found, since there's no
           shortcut to "the last node" or "the node before X" the way there is with array indices.
+        </p>
+        <p>
+          One subtlety worth noticing: dragging a node only changes where it sits <em>on screen</em>, not
+          its real position in the list — that's exactly the point. In actual memory, nodes have no
+          inherent left-to-right order either; only the <code>next</code> pointers define the sequence.
+          The numbered badge on each node always reflects the true list order, even if you drag two nodes
+          past each other and the arrows have to cross to stay correct.
         </p>
       </div>
     </div>
@@ -210,6 +224,12 @@ function renderList(){
     label.className = 'label';
     label.textContent = i===0 ? 'head' : '';
     el.appendChild(label);
+
+    var badge = document.createElement('span');
+    badge.className = 'order-badge';
+    badge.textContent = i + 1;
+    badge.title = 'Position ' + (i+1) + ' in the list — order is logical, not based on screen position.';
+    el.appendChild(badge);
 
     el.addEventListener('pointerdown', function(e){
       dragging = n;
@@ -309,6 +329,12 @@ function deleteVal(){
   nodes.splice(idx,1);
   layoutDefaults();
   renderList(); renderLedger(); bumpOps();
+}
+
+function realign(){
+  layoutDefaults();
+  renderList();
+  setCaption('Nodes re-aligned into list order — the arrows were always correct, just hard to follow visually.', false);
 }
 
 function resetList(){
