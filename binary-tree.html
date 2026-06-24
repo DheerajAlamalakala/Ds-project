@@ -23,8 +23,10 @@
   .insert-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;}
   .insert-row select{border:1px solid var(--line);border-radius:7px;padding:9px 10px;font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--porcelain);}
   .traversal-row{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap;align-items:center;}
-  .caption{margin-top:8px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;}
+  .caption{margin-top:8px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;transition:background 0.2s ease, color 0.2s ease;}
   .caption.idle{color:var(--ink-soft);font-style:italic;}
+  .caption.error{background:#F3E3DF;color:var(--rose);font-weight:500;animation:shake 0.3s ease;}
+  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
   .explainer{margin-top:18px;border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--ink-soft);line-height:1.7;}
   .explainer h3{font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:var(--ink);margin:0 0 8px;}
   .explainer code{background:var(--porcelain);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--sage-deep);}
@@ -54,6 +56,10 @@
       <button class="btn-primary" onclick="insertVal()">Attach</button>
     </div>
     <div class="hint">First node has no parent — just type a value and press Attach to create the root.</div>
+    <div class="insert-row">
+      <input type="number" id="deleteInput" placeholder="value to delete" style="width:130px;">
+      <button class="btn-dark" onclick="deleteVal()">Delete (leaf only)</button>
+    </div>
     <svg class="tree-stage" id="svg" viewBox="0 0 600 300"></svg>
     <div class="hint">Drag any node to rearrange the tree — the lines follow live.</div>
     <button class="btn-ghost" onclick="resetTree()" style="display:block;margin:10px auto 0;">Reset</button>
@@ -116,6 +122,13 @@ struct Node* attach(struct Node* parent,
           tree as they did on the BST, since they only depend on the left/right structure, not on any
           ordering guarantee.
         </p>
+        <p>
+          <strong>Delete</strong> here is intentionally limited to <strong>leaf nodes</strong> — ones with
+          no children. A node with children can't simply vanish without deciding what happens to its
+          subtree, and since this tree has no value-ordering rule to fall back on (unlike a BST, which can
+          always promote a clear successor), there's no single "correct" replacement. Removing leaves first,
+          working inward, sidesteps that ambiguity entirely.
+        </p>
       </div>
     </div>
 
@@ -147,10 +160,12 @@ var mode = 'in';
 var dragging = null;
 var dragOffset = {x:0,y:0};
 
-function setCaption(text, idle){
+function setCaption(text, state){
   var cap = document.getElementById('caption');
   cap.textContent = text;
-  cap.classList.toggle('idle', !!idle);
+  cap.classList.remove('idle','error');
+  if(state === 'error'){ cap.classList.add('error'); }
+  else if(state === true || state === 'idle'){ cap.classList.add('idle'); }
 }
 
 function findByVal(val){
@@ -163,9 +178,9 @@ function insertVal(){
   var parentInput = document.getElementById('parentInput');
   var side = document.getElementById('sideSelect').value;
 
-  if(valInput.value === '' || isNaN(Number(valInput.value))){ setCaption('Enter the value of the new node.', false); return; }
+  if(valInput.value === '' || isNaN(Number(valInput.value))){ setCaption('Enter the value of the new node.', 'error'); return; }
   var val = Number(valInput.value);
-  if(findByVal(val)){ setCaption('Value ' + val + ' already exists in the tree — values must be unique here.', false); return; }
+  if(findByVal(val)){ setCaption('Value ' + val + ' already exists in the tree — values must be unique here.', 'error'); return; }
 
   var node = {id: idCounter++, val: val, left:null, right:null, x: 280, y: 40};
   nodesById[node.id] = node;
@@ -174,15 +189,45 @@ function insertVal(){
     root = node;
     setCaption('Created root node ' + val + '.', false);
   } else {
-    if(parentInput.value === '' || isNaN(Number(parentInput.value))){ setCaption('Enter the parent value to attach to.', false); delete nodesById[node.id]; return; }
+    if(parentInput.value === '' || isNaN(Number(parentInput.value))){ setCaption('This tree already has a root — type an existing node\u2019s value into "parent value" to attach to it.', 'error'); delete nodesById[node.id]; return; }
     var parent = findByVal(Number(parentInput.value));
-    if(!parent){ setCaption('No node with value ' + parentInput.value + ' exists yet.', false); delete nodesById[node.id]; return; }
-    if(side === 'left' && parent.left){ setCaption('Parent ' + parent.val + ' already has a left child.', false); delete nodesById[node.id]; return; }
-    if(side === 'right' && parent.right){ setCaption('Parent ' + parent.val + ' already has a right child.', false); delete nodesById[node.id]; return; }
+    if(!parent){ setCaption('No node with value ' + parentInput.value + ' exists yet.', 'error'); delete nodesById[node.id]; return; }
+    if(side === 'left' && parent.left){ setCaption('Parent ' + parent.val + ' already has a left child — pick a different parent or side.', 'error'); delete nodesById[node.id]; return; }
+    if(side === 'right' && parent.right){ setCaption('Parent ' + parent.val + ' already has a right child — pick a different parent or side.', 'error'); delete nodesById[node.id]; return; }
     if(side === 'left') parent.left = node; else parent.right = node;
     setCaption('Attached ' + val + ' as the ' + side + ' child of ' + parent.val + '.', false);
   }
   valInput.value = ''; parentInput.value = '';
+  autoLayout();
+  drawTree();
+}
+
+function deleteVal(){
+  var deleteInput = document.getElementById('deleteInput');
+  if(deleteInput.value === '' || isNaN(Number(deleteInput.value))){ setCaption('Enter the value of the node to delete.', 'error'); return; }
+  var val = Number(deleteInput.value);
+  var target = findByVal(val);
+  if(!target){ setCaption('No node with value ' + val + ' exists.', 'error'); return; }
+  if(target.left || target.right){
+    setCaption('Can\u2019t delete ' + val + ' — it still has a child. Delete its children first, then work upward.', 'error');
+    return;
+  }
+  if(target === root){
+    root = null;
+  } else {
+    var parent = null;
+    for(var id in nodesById){
+      var n = nodesById[id];
+      if(n.left === target || n.right === target){ parent = n; break; }
+    }
+    if(parent){
+      if(parent.left === target) parent.left = null;
+      else parent.right = null;
+    }
+  }
+  delete nodesById[target.id];
+  deleteInput.value = '';
+  setCaption('Deleted leaf node ' + val + '.', false);
   autoLayout();
   drawTree();
 }
