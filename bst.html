@@ -118,18 +118,6 @@ const codeSets = {
     "    postorder(root->left);","    postorder(root->right);","    printf(\"%d \", root->data);","}"]
 };
 
-function renderCodeSet(key){
-  document.getElementById('codeBlock').innerHTML = codeSets[key].map(l=>`<span class="code-line">${l||'&nbsp;'}</span>`).join('\n');
-  document.getElementById('explainerBox').innerHTML = explainers[key];
-}
-renderCodeSet('insert');
-
-function setCaption(text, idle){
-  const cap = document.getElementById('caption');
-  cap.textContent = text;
-  cap.classList.toggle('idle', !!idle);
-}
-
 const explainers = {
   insert: `<h3>How this works</h3>
     <p>Each node holds <code>data</code> plus two pointers, <code>left</code> and <code>right</code>, initialized to <code>NULL</code>. Inserting compares the new value against the current node: smaller goes left, larger goes right, recursively, until it reaches an empty spot (<code>NULL</code>) and a fresh node is created there.</p>
@@ -141,6 +129,18 @@ const explainers = {
   post: `<h3>How this works</h3>
     <p><strong>Postorder</strong> visits both subtrees fully before the node itself. It's the natural order for deleting a tree safely — children are freed before their parent — or evaluating an expression tree bottom-up.</p>`
 };
+
+function renderCodeSet(key){
+  document.getElementById('codeBlock').innerHTML = codeSets[key].map(l=>`<span class="code-line">${l||'&nbsp;'}</span>`).join('\n');
+  document.getElementById('explainerBox').innerHTML = explainers[key];
+}
+renderCodeSet('insert');
+
+function setCaption(text, idle){
+  const cap = document.getElementById('caption');
+  cap.textContent = text;
+  cap.classList.toggle('idle', !!idle);
+}
 
 function newNode(val){ return {id: idCounter++, val, left:null, right:null}; }
 
