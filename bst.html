@@ -20,6 +20,11 @@
   @keyframes popIn{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
   .mode-tab{padding:6px 12px;border-radius:16px;font-size:12px;font-family:'JetBrains Mono',monospace;border:1px solid var(--line);cursor:pointer;color:var(--ink-soft);}
   .mode-tab.active{background:var(--sage);color:#fff;border-color:var(--sage);}
+  .caption{margin-top:18px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;}
+  .caption.idle{color:var(--ink-soft);font-style:italic;}
+  .explainer{margin-top:18px;border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--ink-soft);line-height:1.7;}
+  .explainer h3{font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:var(--ink);margin:0 0 8px;}
+  .explainer code{background:var(--porcelain);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--sage-deep);}
 </style>
 </head>
 <body>
@@ -44,6 +49,10 @@
       <button class="btn-primary" onclick="insertVal()">Insert</button>
       <button class="btn-ghost" onclick="resetTree()">Reset</button>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-top:10px;">
+      <label style="font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;">Pace</label>
+      <input type="range" id="speed" min="150" max="1200" value="550">
+    </div>
     <div class="traversal-row">
       <span class="mode-tab active" data-mode="in">Inorder</span>
       <span class="mode-tab" data-mode="pre">Preorder</span>
@@ -52,6 +61,7 @@
     </div>
     <div class="eyebrow" style="text-align:left;margin-top:18px;">Output</div>
     <div class="out-strip" id="outStrip"></div>
+    <div class="caption idle" id="caption">Insert a value, then press Traverse.</div>
   </div>
 
   <div class="panel">
@@ -61,7 +71,10 @@
       <div class="tab" data-tab="docs">Reference</div>
     </div>
 
-    <div class="tab-content active" id="code"><pre class="code" id="codeBlock"></pre></div>
+    <div class="tab-content active" id="code">
+      <pre class="code" id="codeBlock"></pre>
+      <div class="explainer" id="explainerBox"></div>
+    </div>
 
     <div class="tab-content" id="complexity">
       <table>
@@ -105,10 +118,29 @@ const codeSets = {
     "    postorder(root->left);","    postorder(root->right);","    printf(\"%d \", root->data);","}"]
 };
 
+const explainers = {
+  insert: `<h3>How this works</h3>
+    <p>Each node holds <code>data</code> plus two pointers, <code>left</code> and <code>right</code>, initialized to <code>NULL</code>. Inserting compares the new value against the current node: smaller goes left, larger goes right, recursively, until it reaches an empty spot (<code>NULL</code>) and a fresh node is created there.</p>
+    <p>This comparison-based placement is exactly what keeps the tree searchable — every node's left subtree is all smaller values, its right subtree all larger.</p>`,
+  in: `<h3>How this works</h3>
+    <p><strong>Inorder</strong> visits left subtree, then the node itself, then right subtree. Because smaller values always live to the left in a BST, this ordering reads the values out in ascending sorted order — which is exactly why Tree Sort works.</p>`,
+  pre: `<h3>How this works</h3>
+    <p><strong>Preorder</strong> visits the node itself first, then its left subtree, then its right subtree. This matches the order nodes were likely created in, and is the form used to serialize a tree for reconstruction later.</p>`,
+  post: `<h3>How this works</h3>
+    <p><strong>Postorder</strong> visits both subtrees fully before the node itself. It's the natural order for deleting a tree safely — children are freed before their parent — or evaluating an expression tree bottom-up.</p>`
+};
+
 function renderCodeSet(key){
   document.getElementById('codeBlock').innerHTML = codeSets[key].map(l=>`<span class="code-line">${l||'&nbsp;'}</span>`).join('\n');
+  document.getElementById('explainerBox').innerHTML = explainers[key];
 }
 renderCodeSet('insert');
+
+function setCaption(text, idle){
+  const cap = document.getElementById('caption');
+  cap.textContent = text;
+  cap.classList.toggle('idle', !!idle);
+}
 
 function newNode(val){ return {id: idCounter++, val, left:null, right:null}; }
 
@@ -121,10 +153,12 @@ function insertNode(node, val){
 
 function insertVal(){
   const input = document.getElementById('valInput');
-  if(input.value === '') return;
-  root = insertNode(root, Number(input.value));
+  if(input.value === '' || isNaN(Number(input.value))) { setCaption('Type a number first, then press Insert.', false); return; }
+  const v = Number(input.value);
+  root = insertNode(root, v);
   input.value = '';
   renderCodeSet('insert');
+  setCaption(`Inserted ${v} — compared down from the root until an empty spot opened up.`, false);
   drawTree();
 }
 
@@ -186,15 +220,18 @@ function collectOrder(node, mode, out){
 }
 
 async function runTraversal(){
-  if(!root) return;
+  if(!root){ setCaption('Insert a few values first.', false); return; }
   document.getElementById('outStrip').innerHTML = '';
   document.querySelectorAll('.tree-node circle').forEach(c=>c.classList.remove('visiting','done'));
   const order = [];
   collectOrder(root, mode, order);
+  const modeName = mode==='in' ? 'Inorder' : mode==='pre' ? 'Preorder' : 'Postorder';
+  setCaption(`Running ${modeName} traversal...`, false);
   for(const node of order){
     const circle = document.querySelector(`#node-${node.id} circle`);
     circle.classList.add('visiting');
-    await new Promise(r=>setTimeout(r, 550));
+    setCaption(`Visiting ${node.val}...`, false);
+    await new Promise(r=>setTimeout(r, Number(document.getElementById('speed').value)));
     circle.classList.remove('visiting');
     circle.classList.add('done');
     const slot = document.createElement('div');
@@ -202,6 +239,7 @@ async function runTraversal(){
     slot.textContent = node.val;
     document.getElementById('outStrip').appendChild(slot);
   }
+  setCaption(`${modeName} complete: ${order.map(n=>n.val).join(', ')}`, false);
 }
 
 document.querySelectorAll('.tab').forEach(tab=>{

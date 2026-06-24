@@ -13,6 +13,11 @@
   .queue-pipe{display:flex;border:2px solid var(--ink);border-radius:8px;min-height:54px;min-width:300px;max-width:480px;padding:4px;gap:4px;align-items:center;}
   .queue-slot{height:42px;min-width:50px;border-radius:6px;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:15px;animation:slideIn 0.32s ease;flex-shrink:0;}
   @keyframes slideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+  .caption{margin-top:18px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;}
+  .caption.idle{color:var(--ink-soft);font-style:italic;}
+  .explainer{margin-top:18px;border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--ink-soft);line-height:1.7;}
+  .explainer h3{font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:var(--ink);margin:0 0 8px;}
+  .explainer code{background:var(--porcelain);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--sage-deep);}
 </style>
 </head>
 <body>
@@ -35,6 +40,7 @@
       <div class="queue-labels"><span>FRONT →</span><span>← REAR</span></div>
       <div class="queue-pipe" id="pipe"></div>
     </div>
+    <div class="caption idle" id="caption">Enqueue a value to get started.</div>
     <div class="controls">
       <input type="number" id="valInput" placeholder="value" />
       <button class="btn-primary" onclick="enqueue()">Enqueue</button>
@@ -64,7 +70,29 @@
       </div>
     </div>
 
-    <div class="tab-content" id="code"><pre class="code" id="codeBlock"></pre></div>
+    <div class="tab-content" id="code">
+      <pre class="code" id="codeBlock"></pre>
+      <div class="explainer">
+        <h3>How this works</h3>
+        <p>
+          A queue keeps two pointers into the same array: <code>front</code>, the oldest element still
+          waiting, and <code>rear</code>, the most recently added one. Both start at <code>-1</code> to
+          mean "empty" — there's no valid index yet.
+        </p>
+        <p>
+          <strong>Enqueue</strong> checks there's room (<code>rear == MAX - 1</code>), then if the queue
+          was empty it sets <code>front = 0</code> so it now points at the very first slot. Either way it
+          advances <code>rear</code> and writes the new value there: <code>arr[++rear] = val</code>.
+        </p>
+        <p>
+          <strong>Dequeue</strong> reads <code>arr[front]</code> as the value leaving. If <code>front</code>
+          and <code>rear</code> meet at the same index, the queue is now empty and both reset to
+          <code>-1</code>. Otherwise <code>front</code> simply moves forward by one. Notice the slots
+          behind <code>front</code> are never reused in this simple version — that's the gap a
+          <em>circular</em> queue is built to close.
+        </p>
+      </div>
+    </div>
 
     <div class="tab-content" id="complexity">
       <table>
@@ -108,6 +136,12 @@ function renderCode(activeLine){
 }
 renderCode(-1);
 
+function setCaption(text, idle){
+  const cap = document.getElementById('caption');
+  cap.textContent = text;
+  cap.classList.toggle('idle', !!idle);
+}
+
 function flashLedger(){
   const box = document.getElementById('ledgerBox');
   box.querySelectorAll('.ledger-row').forEach(r=>r.classList.add('flash'));
@@ -138,28 +172,40 @@ function renderPipe(){
 function enqueue(){
   const input = document.getElementById('valInput');
   const val = input.value;
-  if(val === '' || rear === MAX-1) return;
+  if(val === '' || isNaN(Number(val))){ setCaption('Type a number first, then press Enqueue.', false); return; }
+  if(rear === MAX-1){ setCaption('Queue is full — rear has reached MAX - 1. Nothing was added.', false); return; }
+  setCaption('Checking rear == MAX - 1 \u2192 false, there\'s room.', false);
   renderCode(5);
   setTimeout(()=>{
-    if(front===-1) front = 0;
-    rear++; arr[rear] = Number(val);
-    renderPipe(); renderLedger(); flashLedger();
-    opCount++; document.getElementById('opCount').textContent = opCount;
-    input.value='';
-    setTimeout(()=>renderCode(-1), 500);
-  }, 150);
+    if(front===-1){ front = 0; setCaption('Queue was empty, so front is now set to 0.', false); }
+    renderCode(6);
+    setTimeout(()=>{
+      rear++; arr[rear] = Number(val);
+      renderPipe(); renderLedger(); flashLedger();
+      opCount++; document.getElementById('opCount').textContent = opCount;
+      setCaption(`Enqueued ${arr[rear]}. arr[${rear}] = ${arr[rear]}, rear = ${rear}.`, false);
+      input.value='';
+      setTimeout(()=>{ renderCode(-1); setCaption('Enqueue a value, or dequeue the front one.', true); }, 900);
+    }, 260);
+  }, 260);
 }
 
 function dequeue(){
-  if(front === -1) return;
+  if(front === -1){ setCaption('Queue underflow — front is -1, nothing to dequeue.', false); return; }
+  setCaption(`Checking front == -1 \u2192 false. Reading arr[${front}] = ${arr[front]}...`, false);
   renderCode(10);
   setTimeout(()=>{
-    arr[front] = null;
-    if(front === rear){ front = -1; rear = -1; } else { front++; }
-    renderPipe(); renderLedger(); flashLedger();
-    opCount++; document.getElementById('opCount').textContent = opCount;
-    setTimeout(()=>renderCode(-1), 500);
-  }, 150);
+    const val = arr[front];
+    setCaption(`Returning ${val}. Checking if front == rear...`, false);
+    setTimeout(()=>{
+      arr[front] = null;
+      if(front === rear){ front = -1; rear = -1; setCaption(`That was the last element. front and rear both reset to -1.`, false); }
+      else { front++; setCaption(`front moves forward to ${front}.`, false); }
+      renderPipe(); renderLedger(); flashLedger();
+      opCount++; document.getElementById('opCount').textContent = opCount;
+      setTimeout(()=>{ renderCode(-1); setCaption('Enqueue a value, or dequeue the front one.', true); }, 900);
+    }, 260);
+  }, 260);
 }
 
 function resetQueue(){

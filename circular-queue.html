@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circular Queue — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .size-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:18px;}
+  .size-row label{font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;}
+  .ring-wrap{display:flex;justify-content:center;padding:20px 0;}
+  .ring{display:flex;border:2px solid var(--ink);border-radius:10px;overflow:hidden;}
+  .ring-slot{
+    width:56px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border-right:1px solid var(--line);background:var(--porcelain);position:relative;flex-shrink:0;
+  }
+  .ring-slot:last-child{border-right:none;}
+  .ring-slot.filled{background:var(--sage);color:#fff;}
+  .ring-slot .idx{position:absolute;top:2px;left:4px;font-size:9px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;}
+  .ring-slot.filled .idx{color:rgba(255,255,255,0.7);}
+  .ring-slot .val{font-family:'JetBrains Mono',monospace;font-weight:500;font-size:15px;}
+  .ring-slot .ptr{position:absolute;bottom:-22px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--gold);font-weight:600;white-space:nowrap;}
+  .caption{margin-top:32px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;}
+  .caption.idle{color:var(--ink-soft);font-style:italic;}
+  .explainer{margin-top:18px;border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--ink-soft);line-height:1.7;}
+  .explainer h3{font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:var(--ink);margin:0 0 8px;}
+  .explainer code{background:var(--porcelain);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--sage-deep);}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Linear · Container</div>
+  <h1>Circular Queue</h1>
+  <p>The same fixed array as a queue — except the rear wraps back around to index 0 once it runs off the end.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="size-row">
+      <label>Max Size</label>
+      <input type="number" id="sizeInput" min="3" max="10" value="5" style="width:60px;">
+      <button class="btn-ghost" onclick="applySize()">Set Size</button>
+    </div>
+    <div class="ring-wrap"><div class="ring" id="ring"></div></div>
+    <div class="caption idle" id="caption" style="margin-top:8px;">Enqueue a value to get started.</div>
+    <div class="controls">
+      <input type="number" id="valInput" placeholder="value" />
+      <button class="btn-primary" onclick="enqueue()">Enqueue</button>
+      <button class="btn-dark" onclick="dequeue()">Dequeue</button>
+      <button class="btn-ghost" onclick="resetQueue()">Reset</button>
+    </div>
+    <div class="counters">
+      <div class="counter"><div class="n" id="opCount">0</div><div class="l">Operations</div></div>
+      <div class="counter"><div class="n" id="sizeCount">0</div><div class="l">Current Size</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="vars">Variables</div>
+      <div class="tab" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+      <div class="tab" data-tab="docs">Reference</div>
+    </div>
+
+    <div class="tab-content active" id="vars">
+      <div class="ledger" id="ledgerBox">
+        <div class="ledger-row"><span class="ledger-key">arr[]</span><span class="ledger-val garbage" id="ledgerArr">[ garbage, garbage, garbage, garbage, garbage ]</span></div>
+        <div class="ledger-row"><span class="ledger-key">front</span><span class="ledger-val" id="ledgerFront">-1</span></div>
+        <div class="ledger-row"><span class="ledger-key">rear</span><span class="ledger-val" id="ledgerRear">-1</span></div>
+        <div class="ledger-row"><span class="ledger-key">MAX_SIZE</span><span class="ledger-val" id="ledgerMax">5</span></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="code">
+      <pre class="code" id="codeBlock"></pre>
+      <div class="explainer">
+        <h3>How this works</h3>
+        <p>
+          A plain queue wastes space — once <code>front</code> moves past index 0, those early slots
+          never get reused. The circular queue fixes this by treating the array as a <strong>ring</strong>:
+          every index calculation wraps using the modulo operator, <code>%</code>.
+        </p>
+        <p>
+          <strong>Enqueue</strong> advances <code>rear</code> with <code>rear = (rear + 1) % MAX</code> —
+          so once <code>rear</code> hits the last index, the next enqueue sends it straight back to 0. It's
+          considered full not when every slot is physically used, but when advancing <code>rear</code> would
+          land exactly on <code>front</code> again: <code>(rear + 1) % MAX == front</code>.
+        </p>
+        <p>
+          <strong>Dequeue</strong> works the same way in reverse: <code>front = (front + 1) % MAX</code>.
+          Watch the pointer labels under the ring — once they reach the rightmost slot, the next operation
+          jumps them back to the leftmost slot instead of running off the end.
+        </p>
+      </div>
+    </div>
+
+    <div class="tab-content" id="complexity">
+      <table>
+        <tr><th>Operation</th><th>Time</th><th>Space</th></tr>
+        <tr><td>Enqueue</td><td>O(1)</td><td>O(1)</td></tr>
+        <tr><td>Dequeue</td><td>O(1)</td><td>O(1)</td></tr>
+        <tr><td>Overall storage</td><td>—</td><td>O(n)</td></tr>
+      </table>
+    </div>
+
+    <div class="tab-content" id="docs">
+      <div class="links">
+        <a href="https://www.geeksforgeeks.org/circular-queue-set-1-introduction-array-implementation/" target="_blank">GeeksforGeeks — Circular Queue</a>
+        <a href="https://visualgo.net/en/list" target="_blank">VisuAlgo — Stack &amp; Queue</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Circular Queue — part of the DSA Visualizer collection.</footer>
+
+<script>
+var MAX = 5;
+var arr = new Array(MAX).fill(null);
+var front = -1, rear = -1;
+var opCount = 0;
+
+function codeLines(){
+  return [
+    "#define MAX " + MAX, "int arr[MAX];", "int front = -1, rear = -1;", "",
+    "void enqueue(int val) {",
+    "    if ((rear + 1) % MAX == front) return;",
+    "    if (front == -1) front = 0;",
+    "    rear = (rear + 1) % MAX;",
+    "    arr[rear] = val;", "}", "",
+    "int dequeue() {",
+    "    if (front == -1) return -1;",
+    "    int val = arr[front];",
+    "    if (front == rear) front = rear = -1;",
+    "    else front = (front + 1) % MAX;",
+    "    return val;", "}"
+  ];
+}
+
+function renderCode(activeLine){
+  var lines = codeLines();
+  document.getElementById('codeBlock').innerHTML = lines.map(function(l,i){
+    return '<span class="code-line' + (i===activeLine?' active':'') + '">' + (l || '&nbsp;') + '</span>';
+  }).join('\n');
+}
+renderCode(-1);
+
+function setCaption(text, idle){
+  var cap = document.getElementById('caption');
+  cap.textContent = text;
+  cap.classList.toggle('idle', !!idle);
+}
+
+function flashLedger(){
+  var rows = document.querySelectorAll('#ledgerBox .ledger-row');
+  rows.forEach(function(r){ r.classList.add('flash'); });
+  setTimeout(function(){ rows.forEach(function(r){ r.classList.remove('flash'); }); }, 400);
+}
+
+function renderLedger(){
+  var parts = arr.map(function(v){ return v===null ? '<span class="garbage">garbage</span>' : v; });
+  document.getElementById('ledgerArr').innerHTML = '[ ' + parts.join(', ') + ' ]';
+  document.getElementById('ledgerFront').textContent = front;
+  document.getElementById('ledgerRear').textContent = rear;
+  document.getElementById('ledgerMax').textContent = MAX;
+}
+
+function renderRing(){
+  var ring = document.getElementById('ring');
+  ring.innerHTML = '';
+  for(var i=0;i<MAX;i++){
+    var slot = document.createElement('div');
+    slot.className = 'ring-slot' + (arr[i]!==null ? ' filled' : '');
+    var idx = document.createElement('span'); idx.className='idx'; idx.textContent = i;
+    var val = document.createElement('span'); val.className='val'; val.textContent = arr[i]!==null ? arr[i] : '';
+    slot.appendChild(idx); slot.appendChild(val);
+
+    var labels = [];
+    if(front === i) labels.push('front');
+    if(rear === i) labels.push('rear');
+    if(labels.length){
+      var ptr = document.createElement('span');
+      ptr.className = 'ptr';
+      ptr.textContent = labels.join(' / ');
+      slot.appendChild(ptr);
+    }
+    ring.appendChild(slot);
+  }
+  var count = front===-1 ? 0 : ((rear - front + MAX) % MAX) + 1;
+  document.getElementById('sizeCount').textContent = count;
+}
+
+function enqueue(){
+  var input = document.getElementById('valInput');
+  var val = input.value;
+  if(val === '' || isNaN(Number(val))){ setCaption('Type a number first, then press Enqueue.', false); return; }
+  if((rear + 1) % MAX === front){ setCaption('Queue is full — the next slot would land back on front. Nothing was added.', false); return; }
+  setCaption('Checking (rear + 1) % MAX == front \u2192 false, there\u2019s room.', false);
+  renderCode(5);
+  setTimeout(function(){
+    if(front === -1){ front = 0; setCaption('Queue was empty, so front is now set to 0.', false); }
+    renderCode(6);
+    setTimeout(function(){
+      rear = (rear + 1) % MAX;
+      renderCode(7);
+      setTimeout(function(){
+        arr[rear] = Number(val);
+        renderRing(); renderLedger(); flashLedger();
+        opCount++; document.getElementById('opCount').textContent = opCount;
+        setCaption('Enqueued ' + arr[rear] + ' at index ' + rear + ' (wrapped with % MAX).', false);
+        input.value = '';
+        setTimeout(function(){ renderCode(-1); setCaption('Enqueue a value, or dequeue the front one.', true); }, 900);
+      }, 260);
+    }, 260);
+  }, 260);
+}
+
+function dequeue(){
+  if(front === -1){ setCaption('Queue underflow — front is -1, nothing to dequeue.', false); return; }
+  setCaption('Checking front == -1 \u2192 false. Reading arr[' + front + '] = ' + arr[front] + '...', false);
+  renderCode(12);
+  setTimeout(function(){
+    var val = arr[front];
+    setTimeout(function(){
+      arr[front] = null;
+      if(front === rear){ front = -1; rear = -1; setCaption('That was the last element. front and rear both reset to -1.', false); }
+      else { front = (front + 1) % MAX; setCaption('front wraps forward with % MAX to index ' + front + '.', false); }
+      renderRing(); renderLedger(); flashLedger();
+      opCount++; document.getElementById('opCount').textContent = opCount;
+      setTimeout(function(){ renderCode(-1); setCaption('Enqueue a value, or dequeue the front one.', true); }, 900);
+    }, 260);
+  }, 260);
+}
+
+function applySize(){
+  var input = document.getElementById('sizeInput');
+  var n = parseInt(input.value, 10);
+  if(isNaN(n) || n < 3) n = 3;
+  if(n > 10) n = 10;
+  input.value = n;
+  MAX = n;
+  resetQueue();
+  setCaption('Max size set to ' + MAX + '. Queue reset.', true);
+}
+
+function resetQueue(){
+  arr = new Array(MAX).fill(null);
+  front = -1; rear = -1; opCount = 0;
+  document.getElementById('opCount').textContent = 0;
+  renderRing(); renderLedger(); renderCode(-1);
+  setCaption('Enqueue a value to get started.', true);
+}
+
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+renderRing(); renderLedger();
+</script>
+</body>
+</html>

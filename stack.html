@@ -169,7 +169,7 @@
 <script>
   var MAX = 5;
   var arr = new Array(MAX).fill(null);
-  var top = -1;
+  var topIdx = -1;
   var opCount = 0;
 
   function codeLines(){
@@ -220,20 +220,20 @@
       parts.push(arr[i] === null ? '<span class="garbage">garbage</span>' : arr[i]);
     }
     document.getElementById("ledgerArr").innerHTML = "[ " + parts.join(", ") + " ]";
-    document.getElementById("ledgerTop").textContent = top;
+    document.getElementById("ledgerTop").textContent = topIdx;
     document.getElementById("ledgerMax").textContent = MAX;
   }
 
   function renderTube(){
     var tube = document.getElementById("tube");
     tube.innerHTML = "";
-    for(var i=0;i<=top;i++){
+    for(var i=0;i<=topIdx;i++){
       var slot = document.createElement("div");
       slot.className = "stack-slot";
       slot.textContent = arr[i];
       tube.appendChild(slot);
     }
-    document.getElementById("sizeCount").textContent = top + 1;
+    document.getElementById("sizeCount").textContent = topIdx + 1;
 
     var stage = document.getElementById("stage");
     var oldLabel = document.getElementById("topLabelText");
@@ -242,7 +242,7 @@
     label.className = "top-label";
     label.id = "topLabelText";
     label.style.marginTop = "8px";
-    label.textContent = "TOP \u2192 " + top;
+    label.textContent = "TOP \u2192 " + topIdx;
     stage.appendChild(label);
   }
 
@@ -259,7 +259,7 @@
       setCaption("Type a number first, then press Push.", false);
       return;
     }
-    if(top === MAX - 1){
+    if(topIdx === MAX - 1){
       setCaption("Stack overflow — top has reached MAX - 1 (" + (MAX-1) + "). Nothing was pushed.", false);
       return;
     }
@@ -268,18 +268,18 @@
     renderCode(5);
 
     setTimeout(function(){
-      top++;
-      setCaption("top is now " + top + ". Writing " + val + " into arr[" + top + "]...", false);
+      topIdx++;
+      setCaption("top is now " + topIdx + ". Writing " + val + " into arr[" + topIdx + "]...", false);
       renderCode(6);
 
       setTimeout(function(){
-        arr[top] = Number(val);
+        arr[topIdx] = Number(val);
         renderTube();
         renderLedger();
         flashLedger();
         bumpOps();
-        var pushedVal = arr[top];
-        var pushedIdx = top;
+        var pushedVal = arr[topIdx];
+        var pushedIdx = topIdx;
         input.value = "";
         setCaption("Pushed " + pushedVal + ". arr[" + pushedIdx + "] = " + pushedVal + ", top = " + pushedIdx + ".", false);
 
@@ -292,28 +292,28 @@
   }
 
   function pop(){
-    if(top === -1){
+    if(topIdx === -1){
       setCaption("Stack underflow — top is -1, nothing to pop.", false);
       return;
     }
 
-    setCaption("Checking top == -1 \u2192 false. Reading arr[" + top + "] = " + arr[top] + "...", false);
+    setCaption("Checking top == -1 \u2192 false. Reading arr[" + topIdx + "] = " + arr[topIdx] + "...", false);
     renderCode(10);
 
     setTimeout(function(){
-      var popped = arr[top];
-      var poppedIdx = top;
+      var popped = arr[topIdx];
+      var poppedIdx = topIdx;
       setCaption("Returning " + popped + ", then decrementing top from " + poppedIdx + " to " + (poppedIdx-1) + "...", false);
       renderCode(11);
 
       setTimeout(function(){
-        arr[top] = null;
-        top--;
+        arr[topIdx] = null;
+        topIdx--;
         renderTube();
         renderLedger();
         flashLedger();
         bumpOps();
-        setCaption("Popped " + popped + ". That slot is garbage again, top = " + top + ".", false);
+        setCaption("Popped " + popped + ". That slot is garbage again, top = " + topIdx + ".", false);
 
         setTimeout(function(){
           renderCode(-1);
@@ -336,7 +336,7 @@
 
   function resetStack(){
     arr = new Array(MAX).fill(null);
-    top = -1;
+    topIdx = -1;
     opCount = 0;
     document.getElementById("opCount").textContent = 0;
     renderTube();
@@ -364,5 +364,3 @@
 </script>
 </body>
 </html>
-        
-

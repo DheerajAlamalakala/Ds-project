@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infix · Postfix · Prefix — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .expr-row{display:flex;gap:10px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;}
+  .expr-row input{width:220px;font-size:15px;}
+  .mode-tab{padding:7px 14px;border-radius:18px;font-size:12px;font-family:'JetBrains Mono',monospace;border:1px solid var(--line);cursor:pointer;color:var(--ink-soft);}
+  .mode-tab.active{background:var(--sage);color:#fff;border-color:var(--sage);}
+  .scan-display{
+    font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:2px;text-align:center;
+    padding:14px;background:var(--porcelain);border:1px solid var(--line);border-radius:8px;margin:14px 0;
+  }
+  .scan-display .chip{display:inline-block;padding:2px 4px;border-radius:4px;}
+  .scan-display .chip.current{background:var(--gold-soft);color:var(--ink);}
+  .scan-display .chip.done{color:var(--ink-soft);}
+  .work-area{display:flex;gap:16px;margin-top:14px;flex-wrap:wrap;}
+  .stack-col{flex:0 0 90px;}
+  .stack-col h4, .out-col h4{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;margin:0 0 8px;text-align:center;}
+  .mini-tube{border:2px solid var(--ink);border-top:none;border-radius:0 0 6px 6px;display:flex;flex-direction:column-reverse;min-height:160px;padding:3px;gap:3px;width:60px;margin:0 auto;}
+  .mini-slot{height:30px;border-radius:5px;background:var(--rose);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:13px;animation:dropIn 0.25s ease;}
+  @keyframes dropIn{from{transform:translateY(-16px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .out-col{flex:1;}
+  .out-strip{display:flex;gap:5px;flex-wrap:wrap;min-height:42px;}
+  .out-slot{min-width:30px;height:32px;padding:0 6px;border-radius:6px;background:var(--sage-pale);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--sage-deep);}
+  .caption{margin-top:16px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;}
+  .caption.idle{color:var(--ink-soft);font-style:italic;}
+  .caption.error{background:#F3E3DF;color:var(--rose);}
+  .explainer{margin-top:18px;border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--ink-soft);line-height:1.7;}
+  .explainer h3{font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:var(--ink);margin:0 0 8px;}
+  .explainer code{background:var(--porcelain);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--sage-deep);}
+  .speed-row{display:flex;align-items:center;gap:10px;margin-top:10px;justify-content:center;}
+  .speed-row label{font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Expression Notation</div>
+  <h1>Infix · Postfix · Prefix</h1>
+  <p>Type any infix expression and watch it convert, one token at a time, using a stack and an output array.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="mode-tabs" style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
+      <span class="mode-tab active" data-mode="postfix">To Postfix</span>
+      <span class="mode-tab" data-mode="prefix">To Prefix</span>
+    </div>
+    <div class="expr-row">
+      <input type="text" id="exprInput" value="(A+B)*C-D/E" placeholder="e.g. (A+B)*C">
+      <button class="btn-primary" onclick="runConvert()">Convert</button>
+      <button class="btn-ghost" onclick="resetAll()">Reset</button>
+    </div>
+    <div class="speed-row">
+      <label>Speed</label>
+      <input type="range" id="speed" min="100" max="900" value="450">
+    </div>
+    <div class="scan-display" id="scanDisplay">(A+B)*C-D/E</div>
+
+    <div class="work-area">
+      <div class="stack-col">
+        <h4>Operator Stack</h4>
+        <div class="mini-tube" id="stackTube"></div>
+      </div>
+      <div class="out-col">
+        <h4>Output</h4>
+        <div class="out-strip" id="outStrip"></div>
+      </div>
+    </div>
+
+    <div class="caption idle" id="caption">Edit the expression, or press Convert to use the default.</div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+      <div class="tab" data-tab="docs">Reference</div>
+    </div>
+
+    <div class="tab-content active" id="code">
+      <pre class="code" id="codeBlock"></pre>
+      <div class="explainer" id="explainerBox"></div>
+    </div>
+
+    <div class="tab-content" id="complexity">
+      <table>
+        <tr><th>Operation</th><th>Time</th><th>Space</th></tr>
+        <tr><td>Infix → Postfix</td><td>O(n)</td><td>O(n)</td></tr>
+        <tr><td>Infix → Prefix</td><td>O(n)</td><td>O(n)</td></tr>
+        <tr><td>Postfix evaluation</td><td>O(n)</td><td>O(n)</td></tr>
+      </table>
+    </div>
+
+    <div class="tab-content" id="docs">
+      <div class="links">
+        <a href="https://www.geeksforgeeks.org/stack-set-2-infix-to-postfix/" target="_blank">GeeksforGeeks — Infix to Postfix</a>
+        <a href="https://www.geeksforgeeks.org/prefix-infix-postfix-conversion/" target="_blank">GeeksforGeeks — Prefix/Infix/Postfix Conversion</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Infix · Postfix · Prefix — part of the DSA Visualizer collection.</footer>
+
+<script>
+var mode = 'postfix';
+var running = false;
+
+const codeBlocks = {
+postfix: `int prec(char c) {
+    if (c == '+' || c == '-') return 1;
+    if (c == '*' || c == '/') return 2;
+    return 0;
+}
+
+void infixToPostfix(char* expr) {
+    char stack[50]; int top = -1;
+    char output[50]; int k = 0;
+
+    for (int i = 0; expr[i]; i++) {
+        char c = expr[i];
+        if (isalnum(c)) {
+            output[k++] = c;
+        } else if (c == '(') {
+            stack[++top] = c;
+        } else if (c == ')') {
+            while (stack[top] != '(')
+                output[k++] = stack[top--];
+            top--; // pop '('
+        } else { // operator
+            while (top >= 0 && stack[top] != '(' &&
+                   prec(stack[top]) >= prec(c))
+                output[k++] = stack[top--];
+            stack[++top] = c;
+        }
+    }
+    while (top >= 0) output[k++] = stack[top--];
+}`,
+prefix: `// Prefix is built by reversing the
+// expression, swapping ( and ),
+// running the same postfix algorithm,
+// then reversing the result.
+
+void infixToPrefix(char* expr) {
+    reverse(expr);
+    swapParens(expr);
+    char* postfix = infixToPostfixStr(expr);
+    reverse(postfix);
+    // postfix is now the prefix result
+}`
+};
+
+const explainerText = {
+postfix: `<h3>How this works</h3>
+  <p>The algorithm scans left to right, keeping operators on a <strong>stack</strong> until it knows where they belong relative to precedence. Operands go straight to the output array — they never wait.</p>
+  <p>When an operator arrives, anything already on the stack with <strong>equal or higher</strong> precedence gets popped to the output first — that's what makes <code>*</code> resolve before a pending <code>+</code> even though <code>+</code> was seen earlier. A close parenthesis pops everything back to the matching open one.</p>
+  <p>Whatever's left on the stack at the end gets appended to the output, in order.</p>`,
+prefix: `<h3>How this works</h3>
+  <p>There's no separate algorithm for prefix — it reuses the postfix one with a clever trick: reverse the input string, swap every <code>(</code> with <code>)</code> and vice versa, run the exact same postfix conversion, then reverse the result.</p>
+  <p>Reversing flips the scan direction, and swapping parentheses keeps grouping correct under that flip — so an expression that should bind right-to-left in prefix gets handled by the same left-to-right, precedence-based logic.</p>`
+};
+
+function renderCode(){
+  document.getElementById('codeBlock').textContent = codeBlocks[mode];
+  document.getElementById('explainerBox').innerHTML = explainerText[mode];
+}
+renderCode();
+
+function setCaption(text, cls){
+  var cap = document.getElementById('caption');
+  cap.textContent = text;
+  cap.classList.remove('idle','error');
+  if(cls) cap.classList.add(cls);
+}
+
+function prec(c){
+  if(c==='+' || c==='-') return 1;
+  if(c==='*' || c==='/' || c==='%') return 2;
+  if(c==='^') return 3;
+  return 0;
+}
+function isOperand(c){ return /[A-Za-z0-9]/.test(c); }
+function isOperator(c){ return ['+','-','*','/','%','^'].includes(c); }
+
+function validate(expr){
+  if(expr.trim() === '') return 'Expression is empty.';
+  var depth = 0;
+  for(var i=0;i<expr.length;i++){
+    var c = expr[i];
+    if(c === ' ') continue;
+    if(c === '(') depth++;
+    else if(c === ')'){ depth--; if(depth < 0) return 'Unmatched closing parenthesis at position ' + (i+1) + '.'; }
+    else if(!isOperand(c) && !isOperator(c)) return 'Unrecognized character "' + c + '" at position ' + (i+1) + '.';
+  }
+  if(depth !== 0) return 'Unmatched opening parenthesis — ' + depth + ' not closed.';
+  // check for two operators in a row, or operator at start/end (basic check)
+  var clean = expr.replace(/\s/g,'');
+  for(var i=0;i<clean.length;i++){
+    if(isOperator(clean[i])){
+      if(i===0 || i===clean.length-1) return 'Expression cannot start or end with an operator.';
+      var prevC = clean[i-1], nextC = clean[i+1];
+      if(isOperator(prevC)) return 'Two operators in a row near position ' + i + '.';
+    }
+  }
+  return null;
+}
+
+function renderScan(expr, idx){
+  var html = '';
+  for(var i=0;i<expr.length;i++){
+    var cls = i < idx ? 'done' : (i === idx ? 'current' : '');
+    html += '<span class="chip ' + cls + '">' + (expr[i]===' '?'&nbsp;':expr[i]) + '</span>';
+  }
+  document.getElementById('scanDisplay').innerHTML = html;
+}
+
+function renderStack(stack){
+  document.getElementById('stackTube').innerHTML = stack.map(function(c){
+    return '<div class="mini-slot">'+c+'</div>';
+  }).join('');
+}
+
+function renderOutput(out){
+  document.getElementById('outStrip').innerHTML = out.map(function(c){
+    return '<div class="out-slot">'+c+'</div>';
+  }).join('');
+}
+
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+async function toPostfixAnimated(expr){
+  var stack = [];
+  var output = [];
+  for(var i=0;i<expr.length;i++){
+    var c = expr[i];
+    if(c === ' ') continue;
+    renderScan(expr, i);
+
+    if(isOperand(c)){
+      output.push(c);
+      setCaption(c + ' is an operand \u2192 goes straight to the output.', null);
+    } else if(c === '('){
+      stack.push(c);
+      setCaption('( pushed onto the stack to mark a group.', null);
+    } else if(c === ')'){
+      setCaption('Closing ) \u2014 popping until the matching ( is found.', null);
+      renderStack(stack); renderOutput(output);
+      await sleep(Number(document.getElementById('speed').value));
+      while(stack.length && stack[stack.length-1] !== '('){
+        output.push(stack.pop());
+        renderStack(stack); renderOutput(output);
+        await sleep(Number(document.getElementById('speed').value));
+      }
+      stack.pop();
+    } else {
+      setCaption('Operator ' + c + ' \u2014 popping anything with \u2265 precedence first.', null);
+      renderStack(stack); renderOutput(output);
+      await sleep(Number(document.getElementById('speed').value));
+      while(stack.length && stack[stack.length-1] !== '(' && prec(stack[stack.length-1]) >= prec(c)){
+        output.push(stack.pop());
+        renderStack(stack); renderOutput(output);
+        await sleep(Number(document.getElementById('speed').value));
+      }
+      stack.push(c);
+    }
+    renderStack(stack); renderOutput(output);
+    await sleep(Number(document.getElementById('speed').value));
+  }
+  renderScan(expr, expr.length);
+  setCaption('End of input \u2014 popping any remaining operators to the output.', null);
+  await sleep(Number(document.getElementById('speed').value));
+  while(stack.length){
+    output.push(stack.pop());
+    renderStack(stack); renderOutput(output);
+    await sleep(Number(document.getElementById('speed').value));
+  }
+  return output;
+}
+
+async function runConvert(){
+  if(running) return;
+  var input = document.getElementById('exprInput');
+  var expr = input.value;
+  var err = validate(expr);
+  if(err){ setCaption(err, 'error'); return; }
+
+  running = true;
+  document.getElementById('outStrip').innerHTML = '';
+  document.getElementById('stackTube').innerHTML = '';
+
+  var workingExpr = expr.replace(/\s/g,'');
+  var resultArr;
+
+  if(mode === 'postfix'){
+    resultArr = await toPostfixAnimated(workingExpr);
+    setCaption('Postfix result: ' + resultArr.join(' '), null);
+  } else {
+    setCaption('Reversing the expression and swapping parentheses...', null);
+    await sleep(Number(document.getElementById('speed').value));
+    var reversed = workingExpr.split('').reverse().map(function(c){
+      if(c==='(') return ')'; if(c===')') return '('; return c;
+    }).join('');
+    var postfixOfReversed = await toPostfixAnimated(reversed);
+    var prefixResult = postfixOfReversed.slice().reverse();
+    renderOutput(prefixResult);
+    setCaption('Prefix result: ' + prefixResult.join(' '), null);
+  }
+  running = false;
+}
+
+function resetAll(){
+  document.getElementById('outStrip').innerHTML = '';
+  document.getElementById('stackTube').innerHTML = '';
+  renderScan(document.getElementById('exprInput').value, -1);
+  setCaption('Edit the expression, or press Convert to use the default.', 'idle');
+}
+
+document.querySelectorAll('.mode-tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.mode-tab').forEach(function(x){ x.classList.remove('active'); });
+    t.classList.add('active');
+    mode = t.dataset.mode;
+    renderCode();
+    resetAll();
+  });
+});
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+renderScan(document.getElementById('exprInput').value, -1);
+</script>
+</body>
+</html>
