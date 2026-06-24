@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radix Sort — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .array-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;}
+  .array-cell{
+    min-width:42px;height:42px;padding:0 6px;border-radius:6px;background:var(--sage);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;
+    font-weight:500;font-size:14px;transition:background 0.25s ease,transform 0.25s ease;
+  }
+  .array-cell.active{background:var(--gold);color:var(--ink);}
+  .array-cell.placed{background:var(--sage-deep);}
+  .bucket-matrix{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:14px 0;}
+  .bucket{
+    border:1px solid var(--line);border-radius:8px;min-height:90px;padding:6px 4px;background:var(--porcelain);
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+  }
+  .bucket .digit-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);font-weight:600;}
+  .bucket .chip{
+    width:32px;height:24px;border-radius:5px;background:var(--sage);color:#fff;font-size:11px;
+    display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;
+    animation:popIn 0.25s ease;
+  }
+  @keyframes popIn{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .pass-label{text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:0.06em;margin-top:8px;}
+  .caption{margin-top:14px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;}
+  .caption.idle{color:var(--ink-soft);font-style:italic;}
+  .caption.error{background:#F3E3DF;color:var(--rose);}
+  .explainer{margin-top:18px;border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--ink-soft);line-height:1.7;}
+  .explainer h3{font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:var(--ink);margin:0 0 8px;}
+  .explainer code{background:var(--porcelain);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--sage-deep);}
+  .speed-row{display:flex;align-items:center;gap:10px;margin-top:10px;justify-content:center;}
+  .speed-row label{font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;}
+  @media(max-width:600px){ .bucket-matrix{grid-template-columns:repeat(5,1fr);} }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Sorting · Non-comparison</div>
+  <h1>Radix Sort</h1>
+  <p>No comparisons at all — numbers are dropped into 10 digit buckets, one place value at a time.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="controls">
+      <input type="text" id="arrInput" value="170,45,75,90,802,24,2,66" placeholder="comma-separated numbers" style="width:240px;">
+      <button class="btn-primary" onclick="runRadix()">Sort</button>
+      <button class="btn-ghost" onclick="resetAll()">Reset</button>
+    </div>
+    <div class="speed-row">
+      <label>Pace</label>
+      <input type="range" id="speed" min="100" max="900" value="350">
+    </div>
+
+    <div class="pass-label" id="passLabel">Current array</div>
+    <div class="array-row" id="arrayRow"></div>
+
+    <div class="bucket-matrix" id="bucketMatrix"></div>
+
+    <div class="caption idle" id="caption">Enter values and press Sort.</div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+      <div class="tab" data-tab="docs">Reference</div>
+    </div>
+    <div class="tab-content active" id="code">
+      <pre class="code">void countingSortByDigit(int arr[], int n, int place) {
+    int output[n];
+    int count[10] = {0};
+
+    for (int i = 0; i < n; i++)
+        count[(arr[i] / place) % 10]++;
+
+    for (int i = 1; i < 10; i++)
+        count[i] += count[i - 1];
+
+    for (int i = n - 1; i >= 0; i--) {
+        int digit = (arr[i] / place) % 10;
+        output[count[digit] - 1] = arr[i];
+        count[digit]--;
+    }
+
+    for (int i = 0; i < n; i++) arr[i] = output[i];
+}
+
+void radixSort(int arr[], int n) {
+    int max = getMax(arr, n);
+    for (int place = 1; max / place > 0; place *= 10)
+        countingSortByDigit(arr, n, place);
+}</pre>
+      <div class="explainer">
+        <h3>How this works</h3>
+        <p>
+          Radix Sort never compares two numbers directly. Instead, it processes one <strong>digit place</strong>
+          at a time — ones first, then tens, then hundreds — and on each pass distributes every number into
+          one of 10 buckets based on just that digit, then collects the buckets back into the array in order
+          0 through 9.
+        </p>
+        <p>
+          The key detail is <strong>stability</strong>: within a bucket, numbers must stay in the relative
+          order they arrived in. That's why each pass uses a stable counting sort rather than just dumping
+          values in — if an earlier pass already sorted the lower digits correctly, an unstable later pass
+          would scramble that work.
+        </p>
+        <p>
+          After processing the most significant digit of the largest number, the array is fully sorted —
+          the digit place loop in <code>radixSort</code> simply stops once <code>place</code> exceeds every
+          number's value.
+        </p>
+      </div>
+    </div>
+    <div class="tab-content" id="complexity">
+      <table>
+        <tr><th>Case</th><th>Time</th></tr>
+        <tr><td>All cases</td><td>O(d \u00B7 n)</td></tr>
+        <tr><td>Space</td><td>O(n + 10)</td></tr>
+      </table>
+      <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">d = number of digits in the largest value. For fixed-width integers, this is effectively O(n).</p>
+    </div>
+    <div class="tab-content" id="docs">
+      <div class="links">
+        <a href="https://www.geeksforgeeks.org/radix-sort/" target="_blank">GeeksforGeeks — Radix Sort</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Radix Sort — part of the DSA Visualizer collection.</footer>
+
+<script>
+function setCaption(text, cls){
+  var cap = document.getElementById('caption');
+  cap.textContent = text;
+  cap.classList.remove('idle','error');
+  if(cls) cap.classList.add(cls);
+}
+
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+function renderArray(arr, activeIdx){
+  document.getElementById('arrayRow').innerHTML = arr.map(function(v,i){
+    var cls = i===activeIdx ? ' active' : '';
+    return '<div class="array-cell'+cls+'">'+v+'</div>';
+  }).join('');
+}
+
+function renderBuckets(buckets, digitPlace){
+  var html = '';
+  for(var d=0; d<10; d++){
+    html += '<div class="bucket"><span class="digit-label">'+d+'</span>';
+    (buckets[d]||[]).forEach(function(v){ html += '<span class="chip">'+v+'</span>'; });
+    html += '</div>';
+  }
+  document.getElementById('bucketMatrix').innerHTML = html;
+}
+
+async function runRadix(){
+  var raw = document.getElementById('arrInput').value;
+  var parts = raw.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s !== ''; });
+  if(parts.length === 0){ setCaption('Enter at least one number, comma-separated.', 'error'); return; }
+  var arr = [];
+  for(var i=0;i<parts.length;i++){
+    var n = Number(parts[i]);
+    if(isNaN(n) || n < 0 || !Number.isInteger(n)){ setCaption('"'+parts[i]+'" must be a non-negative whole number.', 'error'); return; }
+    arr.push(n);
+  }
+  if(arr.length > 14){ setCaption('Please use 14 numbers or fewer so the buckets stay readable.', 'error'); return; }
+
+  var speed = function(){ return Number(document.getElementById('speed').value); };
+  document.getElementById('passLabel').textContent = 'Current array';
+  renderArray(arr, -1);
+  renderBuckets({}, 1);
+  setCaption('Finding the largest number to know how many digit passes are needed...', null);
+  await sleep(speed());
+
+  var max = Math.max.apply(null, arr);
+  var digits = String(max).length;
+  setCaption('Largest value is ' + max + ' (' + digits + ' digit' + (digits>1?'s':'') + ') \u2014 that\u2019s ' + digits + ' pass(es) needed.', null);
+  await sleep(speed());
+
+  var place = 1;
+  for(var pass=1; pass<=digits; pass++){
+    document.getElementById('passLabel').textContent = 'Pass ' + pass + ' — digit place: ' + place;
+    var buckets = {};
+    for(var d=0;d<10;d++) buckets[d] = [];
+
+    for(var i=0;i<arr.length;i++){
+      renderArray(arr, i);
+      var digit = Math.floor(arr[i]/place) % 10;
+      setCaption('Looking at ' + arr[i] + ' \u2014 digit at this place is ' + digit + '. Dropping into bucket ' + digit + '.', null);
+      buckets[digit].push(arr[i]);
+      renderBuckets(buckets, place);
+      await sleep(speed());
+    }
+
+    setCaption('Collecting buckets 0 through 9 back into the array, in order...', null);
+    await sleep(speed());
+    var newArr = [];
+    for(var d=0;d<10;d++) newArr = newArr.concat(buckets[d]);
+    arr = newArr;
+    renderArray(arr, -1);
+    renderBuckets({}, place);
+    await sleep(speed());
+
+    place *= 10;
+  }
+
+  document.getElementById('passLabel').textContent = 'Sorted result';
+  setCaption('Sorted: ' + arr.join(', '), null);
+}
+
+function resetAll(){
+  renderArray([], -1);
+  renderBuckets({}, 1);
+  document.getElementById('passLabel').textContent = 'Current array';
+  setCaption('Enter values and press Sort.', 'idle');
+}
+
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+resetAll();
+</script>
+</body>
+</html>

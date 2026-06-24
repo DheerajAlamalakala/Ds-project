@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doubly Linked List — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .ll-stage{position:relative;width:100%;height:240px;border:1px dashed var(--line);border-radius:10px;overflow:hidden;touch-action:none;}
+  .ll-stage svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+  .node-block{
+    position:absolute;width:74px;height:48px;background:var(--sage);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-family:'JetBrains Mono',monospace;
+    font-weight:500;font-size:14px;cursor:grab;user-select:none;box-shadow:0 3px 8px rgba(39,37,34,0.12);
+    z-index:2;
+  }
+  .node-block.head-node{background:var(--sage-deep);}
+  .node-block::before, .node-block::after{
+    content:'';position:absolute;top:50%;transform:translateY(-50%);width:9px;height:9px;border-radius:50%;border:2px solid var(--paper);
+  }
+  .node-block::after{right:-9px;background:var(--gold);}
+  .node-block::before{left:-9px;background:var(--rose);}
+  .node-block .label{position:absolute;top:-20px;font-size:10px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+  .null-tag{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:3px 7px;z-index:2;}
+  .ll-edge-next{stroke:var(--gold);stroke-width:2;fill:none;marker-end:url(#arrowGold);}
+  .ll-edge-prev{stroke:var(--rose);stroke-width:2;fill:none;marker-end:url(#arrowRose);}
+  .legend{display:flex;justify-content:center;gap:18px;margin-top:6px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .legend .dot{width:8px;height:8px;border-radius:50%;}
+  .caption{margin-top:14px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;}
+  .caption.idle{color:var(--ink-soft);font-style:italic;}
+  .explainer{margin-top:18px;border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--ink-soft);line-height:1.7;}
+  .explainer h3{font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:var(--ink);margin:0 0 8px;}
+  .explainer code{background:var(--porcelain);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--sage-deep);}
+  .hint{font-size:11.5px;color:var(--ink-soft);text-align:center;margin-top:10px;font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Linear · Pointers</div>
+  <h1>Doubly Linked List</h1>
+  <p>Each node points both forward (next) and backward (prev) — you can walk the list in either direction.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="ll-stage" id="stage">
+      <svg id="svg"><defs>
+        <marker id="arrowGold" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--gold)"/></marker>
+        <marker id="arrowRose" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M6,0 L0,3 L6,6 Z" fill="var(--rose)"/></marker>
+      </defs></svg>
+    </div>
+    <div class="legend"><span><span class="dot" style="background:var(--gold);"></span>next</span><span><span class="dot" style="background:var(--rose);"></span>prev</span></div>
+    <div class="hint">Drag any node — both pointer lines follow live.</div>
+    <div class="caption idle" id="caption">Insert a value to get started.</div>
+    <div class="controls">
+      <input type="number" id="valInput" placeholder="value" style="width:70px;" />
+      <button class="btn-primary" onclick="insertHead()">Insert Head</button>
+      <button class="btn-primary" onclick="insertTail()">Insert Tail</button>
+      <button class="btn-dark" onclick="deleteVal()">Delete Value</button>
+      <button class="btn-ghost" onclick="resetList()">Reset</button>
+    </div>
+    <div class="counters">
+      <div class="counter"><div class="n" id="opCount">0</div><div class="l">Operations</div></div>
+      <div class="counter"><div class="n" id="sizeCount">0</div><div class="l">Nodes</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="vars">Variables</div>
+      <div class="tab" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+      <div class="tab" data-tab="docs">Reference</div>
+    </div>
+
+    <div class="tab-content active" id="vars">
+      <div class="ledger" id="ledgerBox">
+        <div class="ledger-row"><span class="ledger-key">head</span><span class="ledger-val" id="ledgerHead">NULL</span></div>
+        <div class="ledger-row"><span class="ledger-key">nodes</span><span class="ledger-val" id="ledgerNodes">[ ]</span></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="code">
+      <pre class="code">struct Node {
+    int data;
+    struct Node *next, *prev;
+};
+
+struct Node* head = NULL;
+
+void insertHead(int val) {
+    struct Node* n = malloc(sizeof(struct Node));
+    n->data = val;
+    n->prev = NULL;
+    n->next = head;
+    if (head != NULL) head->prev = n;
+    head = n;
+}
+
+void insertTail(int val) {
+    struct Node* n = malloc(sizeof(struct Node));
+    n->data = val; n->next = NULL;
+    if (head == NULL) { n->prev = NULL; head = n; return; }
+    struct Node* cur = head;
+    while (cur->next != NULL) cur = cur->next;
+    cur->next = n;
+    n->prev = cur;
+}
+
+void deleteValue(int val) {
+    struct Node* cur = head;
+    while (cur != NULL && cur->data != val) cur = cur->next;
+    if (cur == NULL) return;
+    if (cur->prev) cur->prev->next = cur->next;
+    else head = cur->next;
+    if (cur->next) cur->next->prev = cur->prev;
+}</pre>
+      <div class="explainer">
+        <h3>How this works</h3>
+        <p>
+          A doubly linked list adds a second pointer, <code>prev</code>, to every node — the trade-off
+          for being able to walk backward is that every insert and delete now has to keep <em>two</em>
+          links consistent instead of one.
+        </p>
+        <p>
+          <strong>Insert at head</strong> sets the new node's <code>next</code> to the old head, and — if
+          one existed — that old head's <code>prev</code> now points back to the new node. Both directions
+          have to agree, or the list breaks.
+        </p>
+        <p>
+          <strong>Delete</strong> is actually simpler here than in a singly linked list: since each node
+          already knows its own <code>prev</code>, there's no need to walk one step behind looking for "the
+          node before it" — <code>cur->prev</code> already is that node.
+        </p>
+      </div>
+    </div>
+
+    <div class="tab-content" id="complexity">
+      <table>
+        <tr><th>Operation</th><th>Time</th><th>Space</th></tr>
+        <tr><td>Insert at head</td><td>O(1)</td><td>O(1)</td></tr>
+        <tr><td>Insert at tail</td><td>O(n)</td><td>O(1)</td></tr>
+        <tr><td>Delete by value</td><td>O(n)</td><td>O(1)</td></tr>
+        <tr><td>Backward traversal</td><td>O(n)</td><td>O(1)</td></tr>
+      </table>
+    </div>
+
+    <div class="tab-content" id="docs">
+      <div class="links">
+        <a href="https://www.geeksforgeeks.org/doubly-linked-list/" target="_blank">GeeksforGeeks — Doubly Linked List</a>
+        <a href="https://visualgo.net/en/list" target="_blank">VisuAlgo — Linked List</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Doubly Linked List — part of the DSA Visualizer collection.</footer>
+
+<script>
+var nodes = [];
+var idCounter = 0;
+var opCount = 0;
+var dragging = null;
+var dragOffset = {x:0,y:0};
+
+function setCaption(text, idle){
+  var cap = document.getElementById('caption');
+  cap.textContent = text;
+  cap.classList.toggle('idle', !!idle);
+}
+function bumpOps(){ opCount++; document.getElementById('opCount').textContent = opCount; }
+
+function layoutDefaults(){
+  var stage = document.getElementById('stage');
+  var w = stage.clientWidth;
+  nodes.forEach(function(n, i){
+    n.x = 30 + i * 100;
+    if(n.x > w - 90) n.x = w - 90;
+    n.y = 90;
+  });
+}
+
+function renderLedger(){
+  document.getElementById('ledgerHead').textContent = nodes.length ? nodes[0].val : 'NULL';
+  document.getElementById('ledgerNodes').textContent = '[ ' + nodes.map(function(n){return n.val;}).join(' \u21c4 ') + ' ]';
+  document.getElementById('sizeCount').textContent = nodes.length;
+}
+
+function renderList(){
+  var stage = document.getElementById('stage');
+  var svg = document.getElementById('svg');
+  Array.from(stage.querySelectorAll('.node-block, .null-tag')).forEach(function(el){ el.remove(); });
+
+  nodes.forEach(function(n, i){
+    var el = document.createElement('div');
+    el.className = 'node-block' + (i===0 ? ' head-node' : '');
+    el.style.left = n.x + 'px';
+    el.style.top = n.y + 'px';
+    el.textContent = n.val;
+
+    var label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = i===0 ? 'head' : '';
+    el.appendChild(label);
+
+    el.addEventListener('pointerdown', function(e){
+      dragging = n;
+      var rect = el.getBoundingClientRect();
+      dragOffset.x = e.clientX - rect.left;
+      dragOffset.y = e.clientY - rect.top;
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', function(e){
+      if(dragging !== n) return;
+      var stageRect = stage.getBoundingClientRect();
+      n.x = Math.max(0, Math.min(stageRect.width - 74, e.clientX - stageRect.left - dragOffset.x));
+      n.y = Math.max(0, Math.min(stageRect.height - 48, e.clientY - stageRect.top - dragOffset.y));
+      el.style.left = n.x + 'px';
+      el.style.top = n.y + 'px';
+      drawEdges();
+    });
+    el.addEventListener('pointerup', function(){ dragging = null; });
+
+    stage.appendChild(el);
+  });
+
+  var nullTag = document.createElement('div');
+  nullTag.className = 'null-tag';
+  if(nodes.length){
+    var last = nodes[nodes.length-1];
+    nullTag.style.left = (last.x + 84) + 'px';
+    nullTag.style.top = (last.y + 14) + 'px';
+  } else {
+    nullTag.style.left = '20px';
+    nullTag.style.top = '90px';
+  }
+  nullTag.textContent = 'NULL';
+  stage.appendChild(nullTag);
+
+  drawEdges();
+}
+
+function drawEdges(){
+  var svg = document.getElementById('svg');
+  Array.from(svg.querySelectorAll('path')).forEach(function(el){ el.remove(); });
+  for(var i=0;i<nodes.length-1;i++){
+    var a = nodes[i], b = nodes[i+1];
+    var x1 = a.x + 74, y1n = a.y + 18, y1p = a.y + 32;
+    var x2 = b.x, y2n = b.y + 18, y2p = b.y + 32;
+    var pathNext = document.createElementNS('http://www.w3.org/2000/svg','path');
+    pathNext.setAttribute('d', 'M'+x1+','+y1n+' L '+x2+','+y2n);
+    pathNext.setAttribute('class','ll-edge-next');
+    svg.appendChild(pathNext);
+    var pathPrev = document.createElementNS('http://www.w3.org/2000/svg','path');
+    pathPrev.setAttribute('d', 'M'+x2+','+y2p+' L '+x1+','+y1p);
+    pathPrev.setAttribute('class','ll-edge-prev');
+    svg.appendChild(pathPrev);
+  }
+  var nullTag = document.querySelector('.null-tag');
+  if(nodes.length && nullTag){
+    var last = nodes[nodes.length-1];
+    nullTag.style.left = (last.x + 84) + 'px';
+    nullTag.style.top = (last.y + 14) + 'px';
+    var path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', 'M'+(last.x+74)+','+(last.y+18)+' L '+(last.x+84)+','+(last.y+18));
+    path.setAttribute('class','ll-edge-next');
+    svg.appendChild(path);
+  }
+}
+
+function insertHead(){
+  var input = document.getElementById('valInput');
+  if(input.value === '' || isNaN(Number(input.value))){ setCaption('Type a number first.', false); return; }
+  var v = Number(input.value);
+  nodes.unshift({id: idCounter++, val: v, x:30, y:90});
+  layoutDefaults(); renderList(); renderLedger(); bumpOps();
+  setCaption('Inserted ' + v + ' at head — its next points to the old head, and the old head\u2019s prev now points back to it.', false);
+  input.value = '';
+}
+
+function insertTail(){
+  var input = document.getElementById('valInput');
+  if(input.value === '' || isNaN(Number(input.value))){ setCaption('Type a number first.', false); return; }
+  var v = Number(input.value);
+  setCaption(nodes.length===0 ? 'List empty — this becomes head directly.' : 'Walking to the last node, linking ' + v + ' as next, and its prev back to that node.', false);
+  nodes.push({id: idCounter++, val: v, x:30, y:90});
+  layoutDefaults(); renderList(); renderLedger(); bumpOps();
+}
+
+function deleteVal(){
+  var input = document.getElementById('valInput');
+  if(input.value === '' || isNaN(Number(input.value))){ setCaption('Type the value you want to delete.', false); return; }
+  var v = Number(input.value);
+  var idx = nodes.findIndex(function(n){ return n.val === v; });
+  if(idx === -1){ setCaption('Value ' + v + ' not found.', false); return; }
+  if(idx === 0) setCaption('Deleting head: the second node\u2019s prev becomes NULL, head moves to it.', false);
+  else setCaption('Relinking neighbors on both sides of ' + v + ' using its prev and next pointers.', false);
+  nodes.splice(idx,1);
+  layoutDefaults(); renderList(); renderLedger(); bumpOps();
+}
+
+function resetList(){
+  nodes = []; opCount = 0;
+  document.getElementById('opCount').textContent = 0;
+  renderList(); renderLedger();
+  setCaption('Insert a value to get started.', true);
+}
+
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+[12, 27, 5].forEach(function(v){ nodes.push({id: idCounter++, val: v, x:0, y:90}); });
+layoutDefaults();
+renderList();
+renderLedger();
+</script>
+</body>
+</html>

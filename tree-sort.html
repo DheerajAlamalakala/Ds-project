@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tree Sort — DSA Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .tree-stage{width:100%;min-height:260px;}
+  .tree-node circle{fill:var(--sage);stroke:var(--sage-deep);stroke-width:1.5;transition:fill 0.3s ease;}
+  .tree-node circle.visiting{fill:var(--gold);stroke:var(--gold);}
+  .tree-node circle.done{fill:var(--sage-deep);}
+  .tree-node text{fill:#fff;font-family:'JetBrains Mono',monospace;font-size:13px;text-anchor:middle;dominant-baseline:central;font-weight:500;}
+  .tree-edge{stroke:var(--line);stroke-width:2;}
+  .out-strip{display:flex;gap:6px;flex-wrap:wrap;min-height:44px;align-items:center;}
+  .out-slot{width:38px;height:38px;border-radius:6px;background:var(--sage-pale);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--sage-deep);animation:popIn 0.3s ease;}
+  @keyframes popIn{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .caption{margin-top:14px;background:var(--sage-pale);border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sage-deep);min-height:20px;text-align:center;}
+  .caption.idle{color:var(--ink-soft);font-style:italic;}
+  .explainer{margin-top:18px;border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--ink-soft);line-height:1.7;}
+  .explainer h3{font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:var(--ink);margin:0 0 8px;}
+  .explainer code{background:var(--porcelain);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--sage-deep);}
+  .speed-row{display:flex;align-items:center;gap:10px;margin-top:10px;justify-content:center;}
+  .speed-row label{font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="brand" href="index.html">DSA Visualizer</a>
+  <a class="back" href="index.html">← All topics</a>
+</nav>
+
+<header class="page-head">
+  <div class="eyebrow">Sorting · via Tree</div>
+  <h1>Tree Sort</h1>
+  <p>Insert every value into a BST, then read it back out with an inorder traversal — sorted, for free.</p>
+</header>
+
+<main class="layout">
+  <div class="panel">
+    <h2>Visualizer</h2>
+    <div class="controls">
+      <input type="text" id="arrInput" value="55,30,70,20,40,65,80" placeholder="comma-separated numbers" style="width:220px;">
+      <button class="btn-primary" onclick="buildAndSort()">Build &amp; Sort</button>
+      <button class="btn-ghost" onclick="resetAll()">Reset</button>
+    </div>
+    <div class="speed-row">
+      <label>Pace</label>
+      <input type="range" id="speed" min="150" max="1100" value="500">
+    </div>
+    <svg class="tree-stage" id="svg" viewBox="0 0 600 260"></svg>
+    <div class="eyebrow" style="text-align:left;margin-top:14px;">Sorted Output</div>
+    <div class="out-strip" id="outStrip"></div>
+    <div class="caption idle" id="caption">Enter values and press Build &amp; Sort.</div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="code">C Code</div>
+      <div class="tab" data-tab="complexity">Complexity</div>
+      <div class="tab" data-tab="docs">Reference</div>
+    </div>
+    <div class="tab-content active" id="code">
+      <pre class="code">struct Node* insert(struct Node* root, int val) {
+    if (root == NULL) {
+        struct Node* n = malloc(sizeof(struct Node));
+        n->data = val;
+        n->left = n->right = NULL;
+        return n;
+    }
+    if (val < root->data) root->left = insert(root->left, val);
+    else root->right = insert(root->right, val);
+    return root;
+}
+
+void inorder(struct Node* root, int* out, int* k) {
+    if (root == NULL) return;
+    inorder(root->left, out, k);
+    out[(*k)++] = root->data;
+    inorder(root->right, out, k);
+}
+
+void treeSort(int arr[], int n) {
+    struct Node* root = NULL;
+    for (int i = 0; i < n; i++)
+        root = insert(root, arr[i]);
+    int sorted[n], k = 0;
+    inorder(root, sorted, &k);
+    // sorted[] now holds arr in ascending order
+}</pre>
+      <div class="explainer">
+        <h3>How this works</h3>
+        <p>
+          Tree Sort doesn't have a sorting step of its own — it just builds an ordinary BST by inserting
+          every array value one at a time, then leans on a property that's already true of any BST:
+          an <strong>inorder traversal</strong> (left, node, right) always visits values in ascending order.
+        </p>
+        <p>
+          The cost is hidden in the build phase. Each insert is <code>O(log n)</code> on a balanced tree but
+          degrades to <code>O(n)</code> on a skewed one (e.g. inserting already-sorted data), which is why
+          Tree Sort's worst case matches the slower comparison sorts despite looking different on the surface.
+        </p>
+      </div>
+    </div>
+    <div class="tab-content" id="complexity">
+      <table>
+        <tr><th>Case</th><th>Time</th></tr>
+        <tr><td>Best / Average (balanced)</td><td>O(n log n)</td></tr>
+        <tr><td>Worst (skewed)</td><td>O(n\u00B2)</td></tr>
+        <tr><td>Space</td><td>O(n)</td></tr>
+      </table>
+    </div>
+    <div class="tab-content" id="docs">
+      <div class="links">
+        <a href="https://www.geeksforgeeks.org/tree-sort/" target="_blank">GeeksforGeeks — Tree Sort</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Tree Sort — part of the DSA Visualizer collection.</footer>
+
+<script>
+var root = null;
+var idCounter = 0;
+
+function setCaption(text, idle){
+  var cap = document.getElementById('caption');
+  cap.textContent = text;
+  cap.classList.toggle('idle', !!idle);
+}
+
+function insertNode(node, val){
+  if(!node) return {id: idCounter++, val: val, left:null, right:null};
+  if(val < node.val) node.left = insertNode(node.left, val);
+  else node.right = insertNode(node.right, val);
+  return node;
+}
+
+function layout(node, depth, xMin, xMax, positions){
+  if(!node) return;
+  var x = (xMin+xMax)/2;
+  var y = 40 + depth*60;
+  positions[node.id] = {x:x, y:y, node:node};
+  layout(node.left, depth+1, xMin, x, positions);
+  layout(node.right, depth+1, x, xMax, positions);
+}
+
+function drawTree(){
+  var svg = document.getElementById('svg');
+  svg.innerHTML = '';
+  if(!root) return;
+  var positions = {};
+  layout(root, 0, 20, 580, positions);
+
+  function drawEdges(node){
+    if(!node) return;
+    var p = positions[node.id];
+    if(node.left){ var c = positions[node.left.id]; svg.insertAdjacentHTML('beforeend', '<line class="tree-edge" x1="'+p.x+'" y1="'+p.y+'" x2="'+c.x+'" y2="'+c.y+'"/>'); drawEdges(node.left); }
+    if(node.right){ var c = positions[node.right.id]; svg.insertAdjacentHTML('beforeend', '<line class="tree-edge" x1="'+p.x+'" y1="'+p.y+'" x2="'+c.x+'" y2="'+c.y+'"/>'); drawEdges(node.right); }
+  }
+  drawEdges(root);
+
+  Object.values(positions).forEach(function(p){
+    svg.insertAdjacentHTML('beforeend', '<g class="tree-node" id="node-'+p.node.id+'"><circle cx="'+p.x+'" cy="'+p.y+'" r="17"/><text x="'+p.x+'" y="'+p.y+'">'+p.node.val+'</text></g>');
+  });
+}
+
+function collectInorder(node, out){
+  if(!node) return;
+  collectInorder(node.left, out);
+  out.push(node);
+  collectInorder(node.right, out);
+}
+
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+async function buildAndSort(){
+  var raw = document.getElementById('arrInput').value;
+  var parts = raw.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s !== ''; });
+  if(parts.length === 0){ setCaption('Enter at least one number, comma-separated.', false); return; }
+  var nums = [];
+  for(var i=0;i<parts.length;i++){
+    var n = Number(parts[i]);
+    if(isNaN(n)){ setCaption('"' + parts[i] + '" is not a valid number. Use commas, e.g. 5,3,8.', false); return; }
+    nums.push(n);
+  }
+
+  root = null; idCounter = 0;
+  document.getElementById('outStrip').innerHTML = '';
+  drawTree();
+
+  for(var i=0;i<nums.length;i++){
+    setCaption('Inserting ' + nums[i] + ' into the tree...', false);
+    root = insertNode(root, nums[i]);
+    drawTree();
+    await sleep(Number(document.getElementById('speed').value));
+  }
+
+  setCaption('Tree built. Running inorder traversal to read out sorted order...', false);
+  await sleep(Number(document.getElementById('speed').value));
+
+  var order = [];
+  collectInorder(root, order);
+  document.querySelectorAll('.tree-node circle').forEach(function(c){ c.classList.remove('visiting','done'); });
+  for(var i=0;i<order.length;i++){
+    var node = order[i];
+    var circle = document.querySelector('#node-'+node.id+' circle');
+    circle.classList.add('visiting');
+    setCaption('Visiting ' + node.val + ' — the ' + (i+1) + (i===0?'st':i===1?'nd':i===2?'rd':'th') + ' smallest so far.', false);
+    await sleep(Number(document.getElementById('speed').value));
+    circle.classList.remove('visiting');
+    circle.classList.add('done');
+    var slot = document.createElement('div');
+    slot.className = 'out-slot';
+    slot.textContent = node.val;
+    document.getElementById('outStrip').appendChild(slot);
+  }
+  setCaption('Sorted: ' + order.map(function(n){return n.val;}).join(', '), false);
+}
+
+function resetAll(){
+  root = null; idCounter = 0;
+  document.getElementById('outStrip').innerHTML = '';
+  drawTree();
+  setCaption('Enter values and press Build & Sort.', true);
+}
+
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
